@@ -220,25 +220,42 @@ def generate_schedule_plot():
         return jsonify({'error': f'Error generating schedule plots: {str(e)}'})
 
 def generate_sky_plot():
-    """Generate sky plot with proper target paths"""
+    """Generate sky plots with and without priority information"""
     try:
         observer = Observer.at_site('apo')
         now = Time.now()
         sunset = observer.sun_set_time(now, which='next')
         sunrise = observer.sun_rise_time(sunset, which='next')
         time_range = Time([sunset, sunrise])
-        fig = plt.figure(figsize=(10, 10))
-        ax = plt.subplot(111, projection='polar')
+
+        # Create figure with two subplots side by side
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10), 
+                                      subplot_kw={'projection': 'polar'})
+        
+        # Colors for the targets
         colors = plt.cm.rainbow(np.linspace(0, 1, len(blocks)))
+
+        # First plot (without priority)
         for block, color in zip(blocks, colors):
             plot_sky(block.target, observer, time_range,
-                     ax=ax,
-                     style_kwargs={'color': color,
-                                   'label': f"{block.target.name} (P{block.priority})",
-                                   'alpha': 0.8})
-        ax.set_title(f"Sky Plot - {sunset.datetime.date()}")
-        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-        plt.tight_layout()
+                    ax=ax1,
+                    style_kwargs={'color': color,
+                                'label': f"{block.target.name}",
+                                'alpha': 0.8})
+        ax1.set_title(f"Sky Plot (Without Priority)\n{sunset.datetime.date()}")
+        ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+        # Second plot (with priority)
+        for block, color in zip(blocks, colors):
+            plot_sky(block.target, observer, time_range,
+                    ax=ax2,
+                    style_kwargs={'color': color,
+                                'label': f"{block.target.name} (P{block.priority})",
+                                'alpha': 0.8})
+        ax2.set_title(f"Sky Plot (With Priority)\n{sunset.datetime.date()}")
+        ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+        plt.tight_layout(w_pad=4)  # Add extra width padding between subplots
         result = convert_plot_to_base64()
         plt.close(fig)
         return result
