@@ -1,0 +1,418 @@
+# PyScope DND (Drag and Drop) Observatory Scheduler Documentation
+
+## Overview
+The DND (Drag and Drop) module is a web-based interface for scheduling and visualizing astronomical observations. It provides an intuitive way to:
+- Add and manage observation targets 
+- Set exposure times and priorities for each target
+- Generate optimized observation schedules
+- Visualize target positions, airmass, and scheduling timelines
+- Handle night-time constraints automatically
+
+## Project Structure
+```
+DND/
+├── app.py              # Main Flask application with backend logic
+├── requirements.txt    # Project dependencies and version constraints
+├── docsDND.txt        # This documentation file
+├── static/            # Static assets directory
+│   ├── css/
+│   │   └── style.css  # Custom styling for frontend
+│   └── js/
+│       └── main.js    # Frontend interaction handling
+└── templates/         # Jinja2 template directory
+    ├── base.html      # Base template with common layout
+    └── index.html     # Main interface template with forms
+```
+
+## Dependencies
+- Flask (>= 2.0.1): Web framework for backend API
+  - Handles routing, request processing, and response generation
+  - Provides template rendering with Jinja2
+  - Manages API endpoints for target management and plot generation
+
+- Astroplan (>= 0.9): Astronomical observation planning
+  - Provides Observer and FixedTarget classes
+  - Handles scheduling algorithms and constraints
+  - Calculates optimal observation times
+  - Manages night-time visibility constraints
+
+- Astropy (>= 5.3.1): Core astronomy library
+  - Time handling and calculations
+  - Coordinate transformations
+  - Physical units management
+  - FITS file handling capabilities
+
+- Matplotlib (>= 3.5.1): Plotting library
+  - Generates schedule visualizations
+  - Creates sky plots in polar projection
+  - Renders airmass plots
+  - Handles plot styling and formatting
+
+- NumPy (>= 1.24.4): Numerical computations
+  - Array operations for coordinates
+  - Time grid calculations
+  - Mathematical operations for airmass
+
+- Flask-CORS: Cross-Origin Resource Sharing
+  - Enables cross-origin requests
+  - Manages CORS headers
+  - Allows frontend-backend communication
+
+## Core Components Detailed Description
+
+### 1. Flask Application (app.py)
+Main application file implementing the backend server and API endpoints.
+
+#### Global Variables
+```python
+blocks = []  # Stores ObservingBlock objects for scheduling
+SUGGESTED_TARGETS = ["Deneb", "M13", "Sirius", "algol", "vega"]  # Pre-defined targets
+```
+
+#### Configuration
+```python
+app = Flask(__name__)  # Flask application instance
+CORS(app)  # Enable CORS for all routes
+logging.basicConfig(level=logging.DEBUG)  # Configure logging
+```
+
+#### Routes and API Endpoints
+
+1. Main Interface (GET '/')
+```python
+@app.route('/')
+def index():
+    # Renders main interface with suggested targets
+    return render_template('index.html', targets=SUGGESTED_TARGETS)
+```
+
+2. Target Addition (POST '/add_target')
+```python
+@app.route('/add_target', methods=['POST'])
+def add_target():
+    # Validates and adds new observation target
+    # Parameters:
+    #   - target: Target name (string)
+    #   - exposure: Exposure time (float, 1-120 minutes)
+    #   - priority: Priority level (int, 1-10, 1 highest)
+    # Returns: JSON response with status and message
+```
+
+3. Target Removal (POST '/remove_target')
+```python
+@app.route('/remove_target', methods=['POST'])
+def remove_target():
+    # Removes target by index
+    # Parameters:
+    #   - index: Target index to remove (int)
+    # Returns: JSON response with status and message
+```
+
+4. Block Listing (GET '/list_blocks')
+```python
+@app.route('/list_blocks')
+def list_blocks():
+    # Returns JSON array of current blocks with:
+    #   - index: Block position in list
+    #   - target: Target object name
+    #   - exposure: Duration in minutes
+    #   - priority: Scheduling priority
+```
+
+5. Plot Generation (GET '/plot/<plot_type>')
+```python
+@app.route('/plot/<plot_type>')
+def generate_plot(plot_type):
+    # Generates and returns visualization plots
+    # Parameters:
+    #   - plot_type: Type of plot to generate
+    #     * schedule: Timeline visualization
+    #     * sky: Target positions in sky
+    #     * airmass: Airmass over time
+    # Returns: Base64 encoded PNG image
+```
+
+#### Core Functions
+
+##### build_schedule()
+```python
+def build_schedule():
+    """
+    Creates complete observation schedule for all targets
+    
+    Algorithm:
+    1. Creates Observer at APO site
+    2. Sets up night-time constraints
+    3. Calculates sunset to sunrise window
+    4. Sorts blocks by priority
+    5. Initializes scheduler with parameters:
+       - time_resolution: 5 minutes
+       - slew_rate: 2 degrees/second
+    6. Generates and validates schedule
+    
+    Returns:
+    tuple: (scheduled_blocks, schedule.start_time)
+    - scheduled_blocks: List of validated observation blocks
+    - start_time: Schedule start time (astropy.time.Time)
+    """
+```
+
+##### build_individual_schedule(single_block)
+```python
+def build_individual_schedule(single_block):
+    """
+    Creates schedule for single target observation
+    
+    Parameters:
+    - single_block: ObservingBlock object to schedule
+    
+    Algorithm:
+    1. Sets up Observer and constraints
+    2. Creates 24-hour schedule window
+    3. Applies same scheduling logic as build_schedule()
+    
+    Returns:
+    tuple: (scheduled_blocks, schedule.start_time)
+    """
+```
+
+##### generate_schedule_plot()
+```python
+def generate_schedule_plot():
+    """
+    Creates comprehensive schedule visualization
+    
+    Components:
+    1. Individual target timelines:
+       - Shows each target's observation window
+       - Includes priority information
+    
+    2. Combined schedule view:
+       - All targets on single timeline
+       - Color-coded by target
+       - Priority labels
+    
+    3. Detailed schedule table:
+       - Target names
+       - Priority levels
+       - Start/End times (UTC)
+       - Exposure durations
+    
+    Returns:
+    str: Base64 encoded PNG image
+    """
+```
+
+##### generate_sky_plot()
+```python
+def generate_sky_plot():
+    """
+    Creates polar projection sky plots
+    
+    Features:
+    1. Two side-by-side views:
+       - Basic target positions
+       - Positions with priority information
+    
+    2. Plot elements:
+       - Target paths across sky
+       - Time-based position markers
+       - Priority-based color coding
+       - Comprehensive legend
+    
+    Returns:
+    str: Base64 encoded PNG image
+    """
+```
+
+##### generate_airmass_plot()
+```python
+def generate_airmass_plot():
+    """
+    Creates airmass visualization over time
+    
+    Features:
+    1. Plots airmass for each target
+    2. Time range: sunset to sunrise
+    3. Includes priority information
+    4. UTC time labels
+    5. Grid for easy reading
+    
+    Returns:
+    str: Base64 encoded PNG image
+    """
+```
+
+### 2. Frontend Components
+
+#### Templates
+
+##### base.html
+```html
+<!-- Base template structure -->
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Bootstrap 5.1.3 CSS -->
+    <!-- Custom CSS -->
+</head>
+<body>
+    <!-- Navigation bar -->
+    <!-- Content block -->
+    <!-- jQuery 3.6.0 -->
+    <!-- Bootstrap JS -->
+    <!-- Custom JS -->
+</body>
+</html>
+```
+
+##### index.html
+```html
+<!-- Main interface template -->
+{% extends "base.html" %}
+{% block content %}
+    <!-- Target addition form -->
+    <!-- Current targets list -->
+    <!-- Visualization section -->
+{% endblock %}
+```
+
+#### JavaScript (main.js)
+
+##### Target Management
+```javascript
+// Update targets list
+function updateTargetsList() {
+    // Fetches current targets
+    // Updates DOM with target information
+    // Handles empty state
+}
+
+// Remove target
+function removeTarget(index) {
+    // Sends DELETE request
+    // Updates list on success
+    // Handles errors
+}
+```
+
+##### Plot Management
+```javascript
+// Show selected plot
+function showPlot(plotType) {
+    // Shows loading state
+    // Requests plot from server
+    // Updates image display
+    // Handles errors
+}
+```
+
+### 3. Integration Details
+
+#### SimpleScheduler Integration
+```python
+class SimpleScheduler:
+    """
+    Custom scheduler implementation
+    
+    Features:
+    1. Priority-based scheduling
+    2. Constraint handling:
+       - Night time
+       - Target altitude
+       - Telescope limits
+    3. Transition management:
+       - Slew time calculation
+       - Setup time handling
+    4. Schedule optimization:
+       - Minimizes transitions
+       - Maximizes observation efficiency
+    """
+```
+
+## Error Handling
+
+### Input Validation
+1. Target Name:
+   - Must be resolvable by astropy
+   - Handles special characters
+
+2. Exposure Time:
+   - Range: 1-120 minutes
+   - Type: Float
+   - Handles invalid input
+
+3. Priority:
+   - Range: 1-10 (1 highest)
+   - Type: Integer
+   - Validates range
+
+### Plot Generation
+1. Schedule Creation:
+   - Handles empty block list
+   - Validates time windows
+   - Checks constraint satisfaction
+
+2. Plot Generation:
+   - Handles matplotlib exceptions
+   - Manages memory cleanup
+   - Validates output
+
+3. Image Conversion:
+   - Handles encoding errors
+   - Validates image data
+   - Manages memory
+
+## Deployment Notes
+
+### Server Configuration
+```python
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
+```
+
+### Environment Requirements
+- Python 3.7+
+- Virtual environment recommended
+- System dependencies:
+  - Cairo (for matplotlib)
+  - Base64 support
+  - UTF-8 encoding
+
+### Performance Considerations
+- Plot generation is CPU-intensive
+- Memory usage increases with target count
+- Browser memory for base64 images
+- Cache implementation recommended
+
+## Security Considerations
+- Input sanitization implemented
+- CORS headers configured
+- Debug mode in development only
+- Error messages sanitized
+- Rate limiting recommended
+
+## Maintenance
+- Regular dependency updates
+- Log rotation implementation
+- Cache clearing mechanism
+- Session management
+- Error monitoring
+
+## Future Enhancements
+1. Additional Features:
+   - Target import/export
+   - Schedule saving
+   - Multiple night planning
+   - Weather integration
+
+2. Performance:
+   - Plot caching
+   - Async processing
+   - Backend optimization
+
+3. UI/UX:
+   - Dark mode
+   - Mobile responsiveness
+   - Interactive plots
+   - Drag-and-drop interface

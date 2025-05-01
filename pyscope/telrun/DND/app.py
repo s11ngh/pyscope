@@ -92,27 +92,45 @@ def build_schedule():
     if not blocks:
         return None
     try:
-        # Create observer and constraints
         observer = Observer.at_site('apo')
         constraints = [AtNightConstraint()]
-        # Create schedule timeframe (from now to 24 hours)
-        start_time = Time.now()
-        end_time = start_time + 24 * u.hour
-        schedule = Schedule(start_time, end_time)
-        # Setup transitioner for telescope movements
+        
+        # Create schedule timeframe from sunset to sunrise
+        now = Time.now()
+        sunset = observer.sun_set_time(now, which='next')
+        sunrise = observer.sun_rise_time(sunset, which='next')
+        schedule = Schedule(sunset, sunrise)
+        
+        # Setup transitioner
         transitioner = Transitioner(slew_rate=2 * u.deg/u.second)
-        # Sort blocks by priority (lower number means higher priority)
-        sorted_blocks = sorted(blocks, key=lambda b: b.priority)
-        # Create and run scheduler
+        
+        # Sort blocks by priority (reverse=True for highest priority first)
+        sorted_blocks = sorted(blocks, key=lambda b: b.priority, reverse=False)
+        
+        # Create and run scheduler with fixed time resolution
         scheduler = SimpleScheduler(
             observer=observer,
             constraints=constraints,
-            transitioner=transitioner
+            transitioner=transitioner,
+            time_resolution=5*u.minute  # Add fixed time resolution
         )
+        
+        # Run scheduler
         scheduler(sorted_blocks, schedule)
-        # Extract scheduled blocks from schedule slots
-        scheduled_blocks = [slot.block for slot in schedule.slots if getattr(slot, "block", None) is not None]
+        
+        # Extract and validate scheduled blocks
+        scheduled_blocks = []
+        current_time = schedule.start_time
+        
+        for slot in schedule.slots:
+            if hasattr(slot, 'block') and hasattr(slot.block, 'target'):
+                block = slot.block
+                block.start_time = current_time
+                scheduled_blocks.append(block)
+                current_time = current_time + block.duration
+                
         return scheduled_blocks, schedule.start_time
+        
     except Exception as e:
         current_app.logger.error(f"Error building schedule: {str(e)}")
         return None
@@ -140,7 +158,7 @@ def build_individual_schedule(single_block):
         return None
 
 def generate_schedule_plot():
-    """Generate schedule visualizations for individual targets and combined schedule"""
+    """Generate schedule visualizations for individual targets and combined schedule with table"""
     try:
         # Generate individual schedules
         individual_schedules = []
@@ -166,13 +184,16 @@ def generate_schedule_plot():
         if not combined_blocks:
             return jsonify({'error': 'No valid schedule blocks found'})
 
-        # Create subplots - one for each individual schedule plus the combined schedule
-        n_plots = len(blocks) + 1
+        # Create figure with subplots - schedule plots and table
+        n_plots = len(blocks) + 2  # +2 for combined schedule and table
         fig = plt.figure(figsize=(12, n_plots * 3))
+        
+        # Create GridSpec to manage subplot layouts
+        gs = plt.GridSpec(n_plots, 1, height_ratios=[3]*len(blocks) + [3, 2])
         
         # Plot individual schedules
         for i, schedule in enumerate(individual_schedules):
-            ax = plt.subplot(n_plots, 1, i + 1)
+            ax = fig.add_subplot(gs[i])
             scheduled_target_blocks = schedule['blocks']
             start_time = schedule['start_time']
             
@@ -191,8 +212,8 @@ def generate_schedule_plot():
             ax.set_title(f"Individual Schedule - {schedule['target']}")
             ax.grid(True, alpha=0.3)
 
-        # Plot combined schedule at the bottom
-        ax = plt.subplot(n_plots, 1, n_plots)
+        # Plot combined schedule
+        ax = fig.add_subplot(gs[len(blocks)])
         valid_blocks = [(i, block) for i, block in enumerate(combined_blocks) 
                        if hasattr(block, 'start_time')]
         
@@ -210,6 +231,76 @@ def generate_schedule_plot():
         ax.set_yticks(range(len(valid_blocks)))
         ax.set_title("Combined Schedule")
         ax.grid(True, alpha=0.3)
+
+        # Add table at the bottom
+        ax_table = fig.add_subplot(gs[-1])
+        ax_table.axis('off')  # Hide axes
+        
+        # Prepare table data
+        table_data = []
+        headers = ['Target', 'Priority', 
+                  'Individual Start (UTC)', 'Individual End (UTC)',
+                  'Combined Start (UTC)', 'Combined End (UTC)',
+                  'Duration (min)']
+        
+        # Create a dictionary of individual schedules for easy lookup
+        individual_schedule_dict = {
+            schedule['target']: {
+                'blocks': schedule['blocks'],
+                'start_time': schedule['start_time']
+            } for schedule in individual_schedules
+        }
+        
+        for block in combined_blocks:
+            if hasattr(block, 'start_time'):
+                # Get combined schedule times
+                combined_start = block.start_time.datetime.strftime('%Y-%m-%d %H:%M:%S')
+                combined_end = (block.start_time + block.duration).datetime.strftime('%Y-%m-%d %H:%M:%S')
+                
+                # Get individual schedule times
+                ind_schedule = individual_schedule_dict.get(block.target.name)
+                if ind_schedule and ind_schedule['blocks']:
+                    ind_block = ind_schedule['blocks'][0]  # Get first valid block
+                    ind_start = ind_block.start_time.datetime.strftime('%Y-%m-%d %H:%M:%S')
+                    ind_end = (ind_block.start_time + ind_block.duration).datetime.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    ind_start = "N/A"
+                    ind_end = "N/A"
+                
+                row = [
+                    block.target.name,
+                    str(block.priority),
+                    ind_start,
+                    ind_end,
+                    combined_start,
+                    combined_end,
+                    f"{block.duration.to(u.minute).value:.1f}"
+                ]
+                table_data.append(row)
+        
+        # Create table with adjusted column widths
+        table = ax_table.table(
+            cellText=table_data,
+            colLabels=headers,
+            cellLoc='center',
+            loc='center',
+            colWidths=[0.15, 0.08, 0.18, 0.18, 0.18, 0.18, 0.1]
+        )
+        
+        # Style the table
+        table.auto_set_font_size(False)
+        table.set_fontsize(8)  # Slightly smaller font to accommodate more columns
+        table.scale(1.2, 1.5)
+        
+        # Color header row
+        for i, key in enumerate(headers):
+            table[(0, i)].set_facecolor('#E6E6E6')
+            table[(0, i)].set_text_props(weight='bold')
+            # Wrap header text if needed
+            table[(0, i)].get_text().set_wrap(True)
+        
+        # Set table title
+        ax_table.set_title("Final Schedule Details", pad=20)
 
         plt.tight_layout()
         result = convert_plot_to_base64()
