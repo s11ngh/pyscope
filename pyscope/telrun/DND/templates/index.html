@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Add Target Card -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Add Target</h5>
+            </div>
+            <div class="card-body">
+                <form id="target-form">
+                    <div class="mb-3">
+                        <label for="target" class="form-label">Target Name</label>
+                        <input type="text" class="form-control" id="target" required>
+                        <div class="form-text">Suggested targets: {{ targets }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="exposure" class="form-label">Exposure Time (minutes)</label>
+                        <input type="number" class="form-control" id="exposure" min="1" max="120" required>
+                        <div class="form-text">Range: 1-120 minutes</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="priority" class="form-label">Priority</label>
+                        <input type="number" class="form-control" id="priority" min="1" max="10" required>
+                        <div class="form-text">Range: 1 (highest) to 10 (lowest)</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Target</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Targets Card -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Current Targets</h5>
+            </div>
+            <div class="card-body">
+                <div id="targets-list" class="list-group">
+                    <!-- Target list will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Visualization Section -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Visualization</h5>
+            </div>
+            <div class="card-body">
+                <div class="btn-group mb-3" role="group">
+                    <button class="btn btn-outline-primary" onclick="showPlot('schedule')">Schedule Plot</button>
+                    <button class="btn btn-outline-primary" onclick="showPlot('sky')">Sky Plot</button>
+                    <button class="btn btn-outline-primary" onclick="showPlot('airmass')">Airmass Plot</button>
+                </div>
+                <div id="plot-container">
+                    <img id="plot" class="img-fluid" style="display: none;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
