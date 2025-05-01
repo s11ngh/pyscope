@@ -117,36 +117,107 @@ def build_schedule():
         current_app.logger.error(f"Error building schedule: {str(e)}")
         return None
 
-def generate_schedule_plot():
-    """Generate a proper schedule visualization"""
+def build_individual_schedule(single_block):
+    """Build a schedule for a single target"""
     try:
-        result_schedule = build_schedule()
-        if result_schedule is None:
+        observer = Observer.at_site('apo')
+        constraints = [AtNightConstraint()]
+        start_time = Time.now()
+        end_time = start_time + 24 * u.hour
+        schedule = Schedule(start_time, end_time)
+        transitioner = Transitioner(slew_rate=2 * u.deg/u.second)
+        
+        scheduler = SimpleScheduler(
+            observer=observer,
+            constraints=constraints,
+            transitioner=transitioner
+        )
+        scheduler([single_block], schedule)
+        scheduled_blocks = [slot.block for slot in schedule.slots if getattr(slot, "block", None) is not None]
+        return scheduled_blocks, schedule.start_time
+    except Exception as e:
+        current_app.logger.error(f"Error building individual schedule: {str(e)}")
+        return None
+
+def generate_schedule_plot():
+    """Generate schedule visualizations for individual targets and combined schedule"""
+    try:
+        # Generate individual schedules
+        individual_schedules = []
+        for block in blocks:
+            result = build_individual_schedule(block)
+            if result:
+                scheduled_blocks, start_time = result
+                # Filter out transition blocks
+                scheduled_blocks = [b for b in scheduled_blocks if hasattr(b, 'target')]
+                individual_schedules.append({
+                    'target': block.target.name,
+                    'blocks': scheduled_blocks,
+                    'start_time': start_time
+                })
+
+        # Generate combined schedule
+        combined_result = build_schedule()
+        if combined_result is None:
             return jsonify({'error': 'No valid schedule could be created'})
-        scheduled_blocks, schedule_start = result_schedule
-        if not scheduled_blocks:
+        combined_blocks, combined_start = combined_result
+        # Filter out transition blocks from combined schedule
+        combined_blocks = [b for b in combined_blocks if hasattr(b, 'target')]
+        if not combined_blocks:
             return jsonify({'error': 'No valid schedule blocks found'})
 
-        fig, ax = plt.subplots(figsize=(12, len(scheduled_blocks) * 0.7 + 1))
-        for i, block in enumerate(scheduled_blocks):
-            # Compute start offset in minutes relative to schedule_start.
-            start = (block.start_time - schedule_start).to(u.minute).value
+        # Create subplots - one for each individual schedule plus the combined schedule
+        n_plots = len(blocks) + 1
+        fig = plt.figure(figsize=(12, n_plots * 3))
+        
+        # Plot individual schedules
+        for i, schedule in enumerate(individual_schedules):
+            ax = plt.subplot(n_plots, 1, i + 1)
+            scheduled_target_blocks = schedule['blocks']
+            start_time = schedule['start_time']
+            
+            for j, block in enumerate(scheduled_target_blocks):
+                if hasattr(block, 'start_time'):  # Check if block has start_time
+                    start = (block.start_time - start_time).to(u.minute).value
+                    duration = block.duration.to(u.minute).value
+                    ax.broken_barh([(start, duration)], (0.1, 0.8), 
+                                 facecolors='tab:blue')
+                    ax.text(start + duration/2, 0.5, 
+                           f'{block.target.name}\n(P{block.priority})',
+                           va="center", ha="center", color="white", fontsize=9)
+            
+            ax.set_xlabel("Minutes from start")
+            ax.set_yticks([])
+            ax.set_title(f"Individual Schedule - {schedule['target']}")
+            ax.grid(True, alpha=0.3)
+
+        # Plot combined schedule at the bottom
+        ax = plt.subplot(n_plots, 1, n_plots)
+        valid_blocks = [(i, block) for i, block in enumerate(combined_blocks) 
+                       if hasattr(block, 'start_time')]
+        
+        for i, block in valid_blocks:
+            start = (block.start_time - combined_start).to(u.minute).value
             duration = block.duration.to(u.minute).value
-            label = f'{block.target.name}\n(P{block.priority})' if hasattr(block, 'target') else "Transition"
-            ax.broken_barh([(start, duration)], (i - 0.4, 0.8), facecolors='tab:blue')
-            ax.text(start + duration/2, i, label,
-                    va="center", ha="center", color="white", fontsize=9)
+            ax.broken_barh([(start, duration)], (i - 0.4, 0.8), 
+                         facecolors='tab:blue')
+            ax.text(start + duration/2, i, 
+                   f'{block.target.name}\n(P{block.priority})',
+                   va="center", ha="center", color="white", fontsize=9)
+        
         ax.set_xlabel("Minutes from start")
         ax.set_ylabel("Block")
-        ax.set_yticks(range(len(scheduled_blocks)))
-        ax.set_title(f"Observing Schedule - {schedule_start.datetime.date()}")
+        ax.set_yticks(range(len(valid_blocks)))
+        ax.set_title("Combined Schedule")
         ax.grid(True, alpha=0.3)
+
+        plt.tight_layout()
         result = convert_plot_to_base64()
         plt.close(fig)
         return result
     except Exception as e:
-        current_app.logger.error(f"Error generating schedule plot: {str(e)}")
-        return jsonify({'error': f'Error generating schedule plot: {str(e)}'})
+        current_app.logger.error(f"Error generating schedule plots: {str(e)}")
+        return jsonify({'error': f'Error generating schedule plots: {str(e)}'})
 
 def generate_sky_plot():
     """Generate sky plot with proper target paths"""
