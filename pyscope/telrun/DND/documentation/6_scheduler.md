@@ -2,316 +2,229 @@
 
 ## Overview
 
-The scheduler component is responsible for creating optimized observation schedules based on target priorities, constraints, and astronomical conditions.
+The scheduler component handles astronomical observation scheduling through Flask-based web interface, integrating with astroplan for astronomical calculations and schedule optimization.
 
 ## Core Components
 
-### 1. SimpleScheduler Class
+### 1. Global Variables
 
 ```python
-class SimpleScheduler(Scheduler):
+blocks = []  # Stores observation blocks
+SUGGESTED_TARGETS = ["Deneb", "M13", "Sirius", "algol", "vega"]  # Default targets
+```
+
+### 2. Block Management
+
+```python
+@app.route('/add_target', methods=['POST'])
+def add_target():
     """
-    Custom scheduler implementation for astronomical observations
+    Add new observation target
+
+    Parameters:
+        target: str - Target name
+        exposure: float - Exposure time (1-120 minutes)
+        priority: int - Priority level (1-10)
+
+    Validation:
+    - Exposure time: 1-120 minutes
+    - Priority: 1-10 (1 highest)
+    """
+
+@app.route('/remove_target', methods=['POST'])
+def remove_target():
+    """
+    Remove target from schedule by index
+    """
+```
+
+## Schedule Generation
+
+### 1. Main Schedule Builder
+
+```python
+def build_schedule():
+    """
+    Build complete observation schedule
+
+    Process:
+    1. Create Observer at APO site
+    2. Set night-time constraints
+    3. Calculate sunset to sunrise window
+    4. Sort blocks by priority
+    5. Apply scheduling algorithm
+
+    Components:
+    - Observer: APO site location
+    - Constraints: AtNightConstraint
+    - Transitioner: 2 deg/second slew rate
+    - Time Resolution: 5 minutes
+    """
+```
+
+### 2. Individual Schedule Builder
+
+```python
+def build_individual_schedule(single_block):
+    """
+    Build schedule for single target
 
     Features:
-    - Priority-based scheduling
-    - Night-time constraint handling
-    - Slew time optimization
-    - Multiple target coordination
-    """
-
-    def __init__(self, observer, constraints=None, time_resolution=5*u.minute):
-        self.observer = observer
-        self.constraints = constraints or []
-        self.time_resolution = time_resolution
-```
-
-### 2. ObservingBlock Class
-
-```python
-class ObservingBlock:
-    """
-    Represents a single observation target with its requirements
-
-    Attributes:
-        target (FixedTarget): Astronomical target
-        duration (Quantity): Observation duration
-        priority (int): Priority level (1-10)
-        constraints (list): List of observing constraints
+    - 24-hour schedule window
+    - Same constraints as main schedule
+    - Individual target optimization
     """
 ```
 
-## Scheduling Algorithm
+## Visualization System
 
-### 1. Priority Handling
-
-```python
-def sort_by_priority(blocks):
-    """
-    Sort blocks by priority (1 highest, 10 lowest)
-
-    Parameters:
-        blocks (list): List of ObservingBlocks
-
-    Returns:
-        list: Priority-sorted blocks
-    """
-    return sorted(blocks, key=lambda x: x.priority)
-```
-
-### 2. Time Allocation
+### 1. Schedule Visualization
 
 ```python
-def allocate_time(blocks, start_time, end_time):
+def generate_schedule_plot():
     """
-    Allocate observation times for blocks
+    Generate schedule visualizations
 
-    Parameters:
-        blocks (list): Priority-sorted observation blocks
-        start_time (Time): Schedule start time
-        end_time (Time): Schedule end time
-
-    Returns:
-        dict: Allocated time slots for each block
+    Outputs:
+    1. Individual target timelines
+    2. Combined schedule view
+    3. Detailed schedule table with:
+       - Target name
+       - Priority
+       - Individual start/end times
+       - Combined start/end times
+       - Duration
     """
 ```
 
-### 3. Constraint Management
+### 2. Sky Position Plot
 
 ```python
-def apply_constraints(block, time_slot):
+def generate_sky_plot():
     """
-    Apply observing constraints to time slot
+    Generate sky position plots
 
-    Constraints:
-    1. Night time requirement
-    2. Minimum altitude
-    3. Weather conditions
-    4. Target visibility
+    Features:
+    1. Dual view system:
+       - Basic plot without priority
+       - Enhanced plot with priority
+    2. Color-coded targets
+    3. Date-based titling
+    4. Legend with priority levels
     """
 ```
 
-## Schedule Generation Process
-
-### 1. Initialization
+### 3. Airmass Plot
 
 ```python
-def initialize_schedule(observer, time_range):
+def generate_airmass_plot():
     """
-    Create new schedule instance
+    Generate airmass visualization
 
-    Parameters:
-        observer (Observer): Observatory location
-        time_range (tuple): Start and end times
-
-    Returns:
-        Schedule: New schedule instance
+    Features:
+    1. Sunset to sunrise coverage
+    2. Priority-labeled targets
+    3. Time-based x-axis (UTC)
+    4. Grid overlay
     """
 ```
 
-### 2. Block Processing
+## Technical Implementation
+
+### 1. Dependencies
 
 ```python
-def process_blocks(blocks):
-    """
-    Process observation blocks
+from astroplan import FixedTarget, Observer, Transitioner
+from astroplan.scheduling import Schedule, ObservingBlock
+from astroplan.plots import plot_schedule_airmass, plot_sky
+from astroplan.constraints import AtNightConstraint
+from astropy.time import Time, TimeDelta
+from astropy import units as u
+```
 
-    Steps:
-    1. Sort by priority
-    2. Calculate visibility windows
-    3. Optimize transitions
-    4. Allocate time slots
+### 2. Error Handling
+
+```python
+try:
+    # Schedule generation/plot creation
+    ...
+except Exception as e:
+    current_app.logger.error(f"Error: {str(e)}")
+    return jsonify({'error': str(e)})
+```
+
+### 3. Plot Generation
+
+```python
+def convert_plot_to_base64():
+    """
+    Convert matplotlib plots to web-friendly format
+
+    Process:
+    1. Save plot to BytesIO buffer
+    2. Convert to base64 string
+    3. Clean up resources
     """
 ```
 
-### 3. Schedule Optimization
+## API Endpoints
+
+### 1. Plot Generation
 
 ```python
-def optimize_schedule(schedule):
+@app.route('/plot/<plot_type>')
+def generate_plot(plot_type):
     """
-    Optimize observation schedule
-
-    Optimization criteria:
-    1. Minimize slew time
-    2. Maximize observation time
-    3. Maintain priority order
-    4. Handle timing constraints
-    """
-```
-
-## Time Management
-
-### 1. Time Windows
-
-```python
-def calculate_time_windows(observer, target, constraints):
-    """
-    Calculate observable time windows
-
-    Parameters:
-        observer (Observer): Observatory location
-        target (FixedTarget): Target object
-        constraints (list): Observing constraints
-
-    Returns:
-        list: Observable time windows
-    """
-```
-
-### 2. Transition Times
-
-```python
-def calculate_transition_time(current_target, next_target, slew_rate):
-    """
-    Calculate telescope transition time
-
-    Parameters:
-        current_target (FixedTarget): Current target
-        next_target (FixedTarget): Next target
-        slew_rate (Quantity): Telescope slew rate
-
-    Returns:
-        Quantity: Required transition time
-    """
-```
-
-## Constraint Types
-
-### 1. Time Constraints
-
-```python
-class TimeConstraint:
-    """
-    Time-based observation constraints
+    Generate visualization plots
 
     Types:
-    1. Night time requirement
-    2. Specific time ranges
-    3. Maximum duration
+    - schedule: Timeline visualization
+    - sky: Sky position plots
+    - airmass: Airmass curves
+
+    Returns:
+    - Base64 encoded PNG image
+    - Error message if generation fails
     """
 ```
 
-### 2. Altitude Constraints
+### 2. Block Management
 
 ```python
-class AltitudeConstraint:
+@app.route('/list_blocks')
+def list_blocks():
     """
-    Target altitude constraints
+    List all scheduled blocks
 
-    Parameters:
-    - min_altitude (Angle): Minimum observable altitude
-    - max_altitude (Angle): Maximum observable altitude
+    Returns:
+    JSON array of blocks with:
+    - index: Block position
+    - target: Target name
+    - exposure: Duration in minutes
+    - priority: Priority level
     """
 ```
 
-## Schedule Output
+## Configuration
 
-### 1. Schedule Format
+### 1. Environment Setup
 
 ```python
-class Schedule:
-    """
-    Final schedule representation
-
-    Attributes:
-        blocks (list): Scheduled observation blocks
-        start_time (Time): Schedule start time
-        end_time (Time): Schedule end time
-        transitions (list): Block transition times
-    """
+matplotlib.use('Agg')  # Non-interactive backend
+plt.switch_backend('Agg')
 ```
 
-### 2. Block Details
+### 2. CORS Configuration
 
 ```python
-class ScheduledBlock:
-    """
-    Scheduled block information
-
-    Attributes:
-        target (str): Target name
-        start_time (Time): Observation start time
-        duration (Quantity): Observation duration
-        priority (int): Target priority
-    """
+CORS(app)
+@app.after_request
+def after_request(response):
+    """Configure CORS headers"""
 ```
 
-## Error Handling
-
-### 1. Validation
+### 3. Logging
 
 ```python
-def validate_schedule(schedule):
-    """
-    Validate generated schedule
-
-    Checks:
-    1. Time slot conflicts
-    2. Constraint violations
-    3. Priority ordering
-    4. Transition feasibility
-    """
-```
-
-### 2. Error Types
-
-```python
-class SchedulingError(Exception):
-    """Base class for scheduling errors"""
-    pass
-
-class ConstraintViolationError(SchedulingError):
-    """Raised when constraints cannot be satisfied"""
-    pass
-
-class TimingError(SchedulingError):
-    """Raised for timing-related issues"""
-    pass
-```
-
-## Usage Examples
-
-### 1. Basic Schedule Creation
-
-```python
-def create_basic_schedule():
-    """
-    Example: Create basic observation schedule
-    """
-    observer = Observer.at_site('apo')
-    constraints = [AtNightConstraint()]
-
-    # Create blocks
-    blocks = [
-        ObservingBlock(target, duration, priority)
-        for target, duration, priority in targets
-    ]
-
-    # Generate schedule
-    scheduler = SimpleScheduler(observer, constraints)
-    schedule = scheduler(blocks)
-    return schedule
-```
-
-### 2. Advanced Scheduling
-
-```python
-def create_advanced_schedule():
-    """
-    Example: Advanced schedule with multiple constraints
-    """
-    # Add custom constraints
-    constraints = [
-        AtNightConstraint(),
-        AltitudeConstraint(min=30*u.deg),
-        WeatherConstraint()
-    ]
-
-    # Generate optimized schedule
-    scheduler = SimpleScheduler(
-        observer=observer,
-        constraints=constraints,
-        time_resolution=1*u.minute
-    )
-    return scheduler(blocks)
+logging.basicConfig(level=logging.DEBUG)
 ```

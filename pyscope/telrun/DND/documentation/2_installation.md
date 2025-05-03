@@ -95,33 +95,3 @@ pip install -r requirements.txt
 import matplotlib
 matplotlib.use('Agg')
 ```
-
-3. **Permission Issues**
-
-```bash
-# Fix directory permissions
-chmod -R 755 .
-```
-
-### Verification Steps
-
-1. **Check Dependencies**
-
-```bash
-pip freeze | grep -E "flask|astro|matplotlib|numpy"
-```
-
-2. **Test Core Functions**
-
-```python
-# Test astronomical calculations
-from astropy.time import Time
-Time.now()
-```
-
-3. **Verify File Access**
-
-```python
-# Check log file creation
-touch app.log
-```
