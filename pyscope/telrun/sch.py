@@ -2,6 +2,7 @@ import datetime
 import logging
 import re
 import shlex
+import os
 
 import astroplan
 import numpy as np
@@ -9,8 +10,13 @@ from astropy import coordinates as coord
 from astropy import time as astrotime
 from astropy import units as u
 from astroquery import mpc
-
 from pyscope import __version__
+
+
+from astropy.table import Table
+from astropy import units as u
+from astropy.coordinates import SkyCoord
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -100,8 +106,8 @@ def read(
         line = line.replace(">", '"')
         line = line.replace("'", '"')
         line = line.replace("`", '"')
-        line = line.replace("‘", '"')
-        line = line.replace("’", '"')
+        line = line.replace("'", '"')
+        line = line.replace("'", '"')
         lines.append(line)
 
     # From: https://stackoverflow.com/questions/28401547/how-to-remove-comments-from-a-string
@@ -1086,3 +1092,73 @@ def write(observing_blocks, filename=None):
 
                 f.write(write_string + "block end\n\n")
             f.write("\n")
+
+def create_ecsv_table(schedule_list: list[dict]):
+    """Convert schedule list to ECSV-compatible Table"""
+    
+    # Create a new table with only the columns we want to preserve
+    # and in formats that ECSV can handle
+    data = {
+        'ID': [],
+        'name': [],
+        'priority': [],
+        'observer': [],  # Will be converted to string
+        'code': [],
+        'title': [],
+        'filename': [],
+        'filter': [],
+        'exposure': [],  # In seconds
+        'nexp': [],
+        'target_ra': [],  # In degrees
+        'target_dec': [], # In degrees
+        'start_time': [], # ISO format string
+        'end_time': [],   # ISO format string
+        'duration': [],   # In seconds
+        'comment': [],
+        'status': [],
+        'message': []
+    }
+    
+    for block in schedule_list:
+        data['ID'].append(float(block['ID']))
+        data['name'].append(str(block['name']))
+        data['priority'].append(int(block['priority']))
+        # Convert list of observers to comma-separated string
+        data['observer'].append(','.join(block['observer']) if isinstance(block['observer'], list) else str(block['observer']))
+        data['code'].append(str(block['code']))
+        data['title'].append(str(block['title']))
+        data['filename'].append(str(block['filename']))
+        data['filter'].append(str(block['filter']))
+        data['exposure'].append(float(block['exposure']))
+        data['nexp'].append(int(block['nexp']))
+        data['target_ra'].append(float(block['target_ra']))
+        data['target_dec'].append(float(block['target_dec']))
+        # Handle potentially None start/end times
+        data['start_time'].append(block['start_time'].isot if block['start_time'] is not None else '')
+        data['end_time'].append(block['end_time'].isot if block['end_time'] is not None else '')
+        data['duration'].append(float(block['duration'].to(u.second).value))
+        data['comment'].append(str(block['comment']))
+        data['status'].append(str(block['status']))
+        data['message'].append(str(block['message']))
+
+    # Create the table
+    table = Table(data)
+    
+    # Add units where appropriate
+    table['target_ra'].unit = u.deg
+    table['target_dec'].unit = u.deg
+    table['duration'].unit = u.second
+    table['exposure'].unit = u.second
+    
+    # Add metadata
+    table.meta['DESCRIPTION'] = 'Observation Schedule'
+    table.meta['VERSION'] = '1.0'
+    
+    return table
+
+def save_schedule_to_ecsv(schedule_list, output_file):
+    """Save schedule to ECSV file"""
+    
+    table = create_ecsv_table(schedule_list)
+    
+    table.write(output_file, format='ascii.ecsv', overwrite=True)
