@@ -41,115 +41,6 @@ C = completed
 """
 
 
-def basic_scheduler(block_group, schedule_start_time, schedule_end_time, last_block_end_time, observatory, reconfig_file, elevation, airmass, moon_separation, location):
-    """Basic sequential scheduler without relying on astroplan's core scheduler.
-
-    Args:
-        block_group (list): List of ObservingBlock dictionaries for a single group.
-        schedule_start_time (Time): The earliest allowed start time for the night.
-        schedule_end_time (Time): The latest allowed end time for the night.
-        last_block_end_time (Time or None): The end time of the last scheduled block from the previous group, or None if this is the first group.
-        observatory (Observer): The astroplan Observer object.
-        reconfig_file (Reconfig): Reconfiguration time calculator.
-        elevation (float): Minimum elevation constraint (degrees).
-        airmass (float): Maximum airmass constraint.
-        moon_separation (float): Minimum moon separation constraint (degrees).
-        location (EarthLocation): Observatory location.
-
-    Returns:
-        tuple: (list_of_valid_blocks, list_of_invalid_blocks)
-    """
-    valid_blocks = []
-    invalid_blocks = []
-    current_schedule_time = schedule_start_time
-    previous_block_for_transition = None
-
-    if last_block_end_time is not None:
-        current_schedule_time = last_block_end_time
-        # Need a placeholder/actual last block to calculate transition *from*
-        # For simplicity, let's assume the transition time is calculated *to* the first block
-        # A more robust solution might need the actual last block object.
-        # For now, we'll calculate transition inside the loop based on the *previous valid block* in *this* group.
-
-    # --- Define Constraints --- (Re-instantiate for clarity within this function)
-    alt_constraint = astroplan.AltitudeConstraint(min=elevation * u.deg)
-    airmass_constraint = astroplan.AirmassConstraint(max=airmass)
-    moon_constraint = astroplan.MoonSeparationConstraint(min=moon_separation * u.deg)
-    # Sun altitude constraint is handled by schedule_start_time/schedule_end_time
-    all_constraints = [alt_constraint, airmass_constraint, moon_constraint]
-
-    for i, block in enumerate(block_group):
-        target = block["target"]
-        duration = block["duration"]
-
-        # --- Calculate Earliest Possible Start Time for this Block --- 
-        transition_time = 0 * u.second
-        if previous_block_for_transition is not None:
-            # Calculate transition from the *previous successfully scheduled block* in this group
-            try:
-               transition_time = reconfig_file.calc_reconfig_time_blocks(
-                    previous_block_for_transition, block, location, verbose=False
-                )
-            except Exception as e:
-                logger.warning(f"Could not calculate transition time between {previous_block_for_transition.get('target', 'Unknown')} and {target}: {e}")
-                transition_time = 60 * u.second # Default transition if calc fails
-        
-        # Proposed start time is the later of the night start or the end of the last action (prev block end + transition)
-        proposed_start_time = max(schedule_start_time, current_schedule_time + transition_time)
-
-        # Apply explicit time constraints if they exist for the block
-        block_constraints = block.get("constraints", [])
-        if block_constraints and isinstance(block_constraints[0], astroplan.TimeConstraint):
-             time_constraint = block_constraints[0]
-             if time_constraint.min is not None:
-                 proposed_start_time = max(proposed_start_time, time_constraint.min)
-             # We don't explicitly handle time_constraint.max here, assumes duration handles it implicitly
-             # or the overall schedule_end_time catches it.
-        
-        proposed_end_time = proposed_start_time + duration
-
-        # --- Check Constraints --- 
-        times_to_check = [proposed_start_time, proposed_start_time + duration/2, proposed_end_time - 1*u.s] # Check start, middle, end
-        constraints_pass = True
-        failure_reason = ""
-
-        # Check overall time window first
-        if proposed_start_time < schedule_start_time or proposed_end_time > schedule_end_time:
-            constraints_pass = False
-            failure_reason = "Outside night window" 
-        else:
-            # Check astroplan constraints
-            try:
-                constraint_results = [c(observatory, target, times=times_to_check) for c in all_constraints]
-                if not all(constraint_results):
-                    constraints_pass = False
-                    failed_constraints = [c.__class__.__name__ for c, res in zip(all_constraints, constraint_results) if not res]
-                    failure_reason = f"Failed constraints: {', '.join(failed_constraints)}"
-            except Exception as e:
-                # Handle potential errors during constraint calculation (e.g., target not visible at all)
-                logger.warning(f"Error checking constraints for target {target.name} at {proposed_start_time}: {e}")
-                constraints_pass = False
-                failure_reason = f"Constraint calculation error: {e}"
-
-        # --- Schedule or Reject Block --- 
-        if constraints_pass:
-            block["start_time"] = proposed_start_time
-            block["end_time"] = proposed_end_time
-            valid_blocks.append(block)
-            current_schedule_time = block["end_time"] # Update schedule time for next block's transition
-            previous_block_for_transition = block # Set this block as the reference for the next transition
-            logger.debug(f"Scheduled {target.name} at {proposed_start_time.iso}")
-        else:
-            block["start_time"] = None # Mark as unscheduled
-            block["end_time"] = None
-            block["schedule_failure_reason"] = failure_reason # Add reason for failure
-            invalid_blocks.append(block)
-            logger.debug(f"Rejected {target.name} proposed for {proposed_start_time.iso}. Reason: {failure_reason}")
-            # Do *not* update current_schedule_time or previous_block_for_transition if block fails
-
-    return valid_blocks, invalid_blocks
-
-
 @click.command(
     epilog="""Check out the documentation at
                https://pyscope.readthedocs.io/en/latest/
@@ -310,7 +201,7 @@ def basic_scheduler(block_group, schedule_start_time, schedule_end_time, last_bl
     "--name-format",
     "name_format",
     type=str,
-    default="{code}_{target}_{filter}_{exposure}s_{start_time}",
+    default="{code}_{sch}_{ra}_{dec}_{start_time}",
     show_default=True,
     help="""The format of the scheduled image name. The format
     is a string that can include any column from the schedule table or
@@ -789,82 +680,110 @@ def schedtel_cli(
         #     time_resolution=resolution * u.second,
         # )
     # Basic Scheduler without astroplan
-    # def basic_scheduler(block_group, schedule_start_time, schedule_end_time, last_block_end_time, observatory, reconfig_file, elevation, airmass, moon_separation, location):
-    #     """Basic sequential scheduler without relying on astroplan's core scheduler.
-    #     ...
-    #     """
-    #     ... <Function body removed as it's now at module level> ... 
-    #     return valid_blocks, invalid_blocks
-    
-    # Calculate overall night start/end times once
-    current_time_for_night = astrotime.Time(date, format="datetime")
-    night_start_time = observatory.sun_set_time(current_time_for_night, which="next", horizon=max_altitude * u.deg)
-    night_end_time = observatory.sun_rise_time(current_time_for_night, which="next", horizon=max_altitude * u.deg)
-    logger.info(f"Scheduling window: {night_start_time.iso} to {night_end_time.iso}")
-
-    logger.info("Scheduling ObservingBlocks using Basic Scheduler")
-    scheduled_blocks = []
-    unscheduled_blocks = []
-    last_scheduled_block_end_time = None 
-    
-    # print(f"Type of block_groups: {type(block_groups)}")
-    # print(f"Type of block_groups[0]: {type(block_groups[0])}")
-    for i in tqdm.tqdm(range(len(block_groups))):
-        logger.debug("Processing Block group %i of %i" % (i + 1, len(block_groups)))
-        valid_in_group, invalid_in_group = basic_scheduler(
-            block_groups[i], 
-            night_start_time, 
-            night_end_time, 
-            last_scheduled_block_end_time, 
-            observatory, 
-            reconfig_file, 
-            elevation, 
-            airmass, 
-            moon_separation,
-            location
+    def basic_scheduler(block_group, schedule):
+        # Set start time based on sun set angle
+        current_time = astrotime.Time(
+            date,
+            format="datetime",
         )
-        scheduled_blocks.extend(valid_in_group)
-        unscheduled_blocks.extend(invalid_in_group)
-        
-        if valid_in_group: # Update last end time only if something was scheduled in this group
-            last_scheduled_block_end_time = valid_in_group[-1]['end_time']
-        
-        # logger.debug(f"Group {i+1}: Scheduled {len(valid_in_group)}, Unscheduled {len(invalid_in_group)}")
+        sun_set = observatory.sun_set_time(current_time, which="next", horizon=max_altitude * u.deg)
+        sun_rise = observatory.sun_rise_time(current_time, which="next", horizon=max_altitude * u.deg)
+        start_time = sun_set.mjd
+        start_time = astrotime.Time(start_time, format="mjd")
+        # print (type(start_time))
+        end_time = sun_rise.mjd
+        end_time = astrotime.Time(end_time, format="mjd")
+        for i in range(len(block_group)):
+            if block_group[0]["start_time"] is None:
+                
+                try:
+                    print(f"Last end time: {schedule[-1]['end_time']}")
+
+                    # If there's a block group constraint, use it as
+                    # that should be the scheduled utstart time
+                    if block_group[0]["constraints"] is not None:
+                        if block_group[0]["constraints"][0].min is not None:
+                            block_group[0]["start_time"] = block_group[0]["constraints"][0].min
+                        else:
+                            # Otherwise, use the last end time
+                            block_group[0]["start_time"] = schedule[-1]["end_time"]
+                    else:
+                        # If there's no block group constraint, use the last end time
+                        block_group[0]["start_time"] = schedule[-1]["end_time"]
+
+                    # Calculate transition time
+                    transition_time = reconfig_file.calc_reconfig_time_blocks(
+                        block_group[0], schedule[-1], location, verbose=False)
+                    
+                    # If last end time + transition time is greater than start time, 
+                    # use last end time
+                    if block_group[0]["start_time"] < schedule[-1]["end_time"] + transition_time:
+                        block_group[0]["start_time"] = schedule[-1]["end_time"] + transition_time
+
+                    # total_time = transition_time + block_group[0]["duration"] 
+                    # # total_time /= 86400
+                    # block_group[0]["start_time"] = schedule[-1]["end_time"] + total_time 
+                except Exception as e:
+                    print(f"Error in scheduler: {e}")
+                    # If there's a block group constraint, use it
+                    if block_group[0]["constraints"] is not None:
+                        block_group[0]["start_time"] = block_group[0]["constraints"][0].min
+                    else:
+                        block_group[0]["start_time"] = start_time
+                    # block_group[0]["start_time"] = start_time
+
+            # Calculate end time from transition times
+            for i, block in enumerate(block_group):    
+                # print (block)
+                current_obj = block["target"]
+    
+                if i == len(block_group) - 1:
+                    block["end_time"] = block["start_time"] + block["duration"]
+                    return schedule
+                else:
+                    next_block = block_group[i + 1]
+                next_obj = next_block["target"]
+                
+                transition_time = reconfig_file.calc_reconfig_time_blocks(
+                    block, next_block, location, verbose=False)
+                total_time = transition_time + block["duration"]
+                # total_time /= 86400
+                block["end_time"] = block["start_time"] + total_time
+                next_block["start_time"] = block["end_time"]
+                schedule.append(block)              
+                if block["end_time"] > end_time:
+                    print("End time is greater than sunrise")
+                    # return schedule
+
+        # Add constraints
+
+        return schedule
+    
+    
+    logger.info("Scheduling ObservingBlocks")
+    scheduled_blocks = []
+    print(f"Type of block_groups: {type(block_groups)}")
+    print(f"Type of block_groups[0]: {type(block_groups[0])}")
+    for i in tqdm.tqdm(range(len(block_groups))):
+        logger.debug("Block group %i of %i" % (i + 1, len(block_groups)))
+    #     # schedule_handler(block_groups[i], schedule)
+        scheduled_blocks = basic_scheduler(block_groups[i], scheduled_blocks)
         # print(type(scheduled_blocks[0]['exposure']))
 
-    # Flatten block_groups for comparison
-    all_input_blocks = [block for block_group in block_groups for block in block_group]
+    # Flatten block_groups for comparison with scheduled ObservingBlocks
+    # all_blocks = [block for block_group in block_groups for block in block_group]
 
     # Get scheduled ObservingBlocks
-    schedule_table = None
-    if len(scheduled_blocks) == 0:
-        logger.warning("No blocks were scheduled.")
-        if not yes:
-            # Ask the user if they want to continue without the unscheduled blocks
-            user_input = input(
-                "No blocks were scheduled. Continue without scheduling? (y/n): "
-            )
-            if user_input.lower() != "y":
-                return
-        else:
-            logger.info("No blocks were scheduled, continuing without scheduling.")
-    else:
-        logger.info(f"{len(scheduled_blocks)} blocks were scheduled.")
+    # scheduled_blocks = [
+    #     slot.block for slot in schedule.slots if hasattr(slot.block, "target")
+    # ]
+    # transition_blocks = [
+    #     slot.block
+    #     for slot in schedule.slots
+    #     if slot.block is not None and not hasattr(slot.block, "target")
+    # ]
 
-    if len(unscheduled_blocks) > 0:
-        logger.warning(f"{len(unscheduled_blocks)} blocks could not be scheduled.")
-        for block in unscheduled_blocks:
-            logger.warning(f"  - {block['target'].name}: {block.get('schedule_failure_reason', 'Unknown reason')}")
-            
-        if not yes:
-            # Ask the user if they want to continue without the unscheduled blocks
-            user_input = input(
-                f"{len(unscheduled_blocks)} blocks could not be scheduled. Continue without these blocks? (y/n): "
-            )
-            if user_input.lower() != "y":
-                return
-        else:
-            logger.info(f"{len(unscheduled_blocks)} blocks could not be scheduled, continuing without these blocks.")
+    # unscheduled_slots = [slot for slot in schedule.slots if slot.block is None]
 
     # Update ephem for non-sidereal targets, update object types, set filenames
     for block_number, block in enumerate(scheduled_blocks):
@@ -1256,34 +1175,26 @@ def plot_schedule_gantt_cli(schedule_table, observatory):
 
     twilight_times = [
         t0,
-        astrotime.Time(observatory.sun_set_time(t0, which="next", horizon=max_altitude * u.deg),
-                       scale="utc"),
+        astrotime.Time(observatory.sun_set_time(t0, which="next"), scale="utc"),
         astrotime.Time(
-            observatory.twilight_evening_civil(t0, which="next", horizon=max_altitude * u.deg),
-            scale="utc",
+            observatory.twilight_evening_civil(t0, which="next"), scale="utc"
         ),
         astrotime.Time(
-            observatory.twilight_evening_nautical(t0, which="next", horizon=max_altitude * u.deg),
-            scale="utc",
+            observatory.twilight_evening_nautical(t0, which="next"), scale="utc"
         ),
         astrotime.Time(
-            observatory.twilight_evening_astronomical(t0, which="next", horizon=max_altitude * u.deg),
-            scale="utc",
+            observatory.twilight_evening_astronomical(t0, which="next"), scale="utc"
         ),
         astrotime.Time(
-            observatory.twilight_morning_astronomical(t0, which="next", horizon=max_altitude * u.deg),
-            scale="utc",
+            observatory.twilight_morning_astronomical(t0, which="next"), scale="utc"
         ),
         astrotime.Time(
-            observatory.twilight_morning_nautical(t0, which="next", horizon=max_altitude * u.deg),
-            scale="utc",
+            observatory.twilight_morning_nautical(t0, which="next"), scale="utc"
         ),
         astrotime.Time(
-            observatory.twilight_morning_civil(t0, which="next", horizon=max_altitude * u.deg),
-            scale="utc",
+            observatory.twilight_morning_civil(t0, which="next"), scale="utc"
         ),
-        astrotime.Time(observatory.sun_rise_time(t0, which="next", horizon=max_altitude * u.deg),
-                       scale="utc"),
+        astrotime.Time(observatory.sun_rise_time(t0, which="next"), scale="utc"),
         t1,
     ]
     opacities = [0.8, 0.6, 0.4, 0.2, 0, 0.2, 0.4, 0.6, 0.8]
