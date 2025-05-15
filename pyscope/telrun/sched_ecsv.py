@@ -120,19 +120,24 @@ def prepare_blocks_for_ecsv(schedule_list):
 
 def save_schedule_to_ecsv(schedule_list, output_file):
     """
-    Save schedule to ECSV file in the bin directory
+    Save schedule to ECSV file in the tests/bin directory
     
     Parameters
     ----------
     schedule_list : list of dict
         List of observation blocks from the scheduler
     output_file : str
-        Filename for output (will be saved in the bin directory)
+        Filename for output (will be saved in the tests/bin directory)
     
     Returns
     -------
     astropy.table.Table
         The table that was saved
+        
+    Raises
+    ------
+    FileExistsError
+        If a file with the same name already exists in the target directory
     """
     
     # Prepare blocks for serialization
@@ -141,17 +146,22 @@ def save_schedule_to_ecsv(schedule_list, output_file):
     # Create table
     table = create_ecsv_table(prepared_blocks)
     
-    # Get the project root directory
-    project_root = pathlib.Path(__file__).parent.parent.absolute()
+    # Get the project root directory - this is 2 levels up from this file
+    # since this file is in pyscope/telrun/
+    project_root = pathlib.Path(__file__).parent.parent.parent.absolute()
     
     # Create the bin directory path
-    bin_dir = os.path.join(project_root, 'tests/bin')
+    bin_dir = os.path.join(project_root, 'tests', 'bin')
     
     # Ensure the bin directory exists
     os.makedirs(bin_dir, exist_ok=True)
     
     # Create the full output path
     full_output_path = os.path.join(bin_dir, os.path.basename(output_file))
+    
+    # Check if file already exists
+    if os.path.exists(full_output_path):
+        raise FileExistsError(f"A file named '{os.path.basename(output_file)}' already exists in the target directory. Please choose another name.")
     
     # Save the table
     table.write(full_output_path, format='ascii.ecsv', overwrite=True)
