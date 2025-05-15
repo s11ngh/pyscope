@@ -4,6 +4,10 @@ from astropy import coordinates as coord
 from astroplan import Observer, FixedTarget, ObservingBlock
 import datetime
 from astropy.coordinates import SkyCoord, EarthLocation
+from pyscope.telrun.sched_ecsv import save_schedule_to_ecsv
+import os
+from astropy.table import Table
+from astropy.io import ascii
 
 # Define observatory location (example: Palomar Observatory)
 location = EarthLocation(lat=33.356*u.deg, lon=-116.863*u.deg, height=1712*u.m)
@@ -63,36 +67,30 @@ def basic_scheduler(block_group, schedule):
     for i in range(len(block_group)):
         if block_group[0]["start_time"] is None:
             try:
-                print(f"Last end time: {schedule[-1]['end_time']}")
+                # Only try to access previous schedule if it exists
+                if len(schedule) > 0:
+                    print(f"Last end time: {schedule[-1]['end_time']}")
 
-                # If there's a block group constraint, use it as
-                # that should be the scheduled utstart time
-                if block_group[0]["constraints"] is not None:
-                    if block_group[0]["constraints"][0].min is not None:
-                        block_group[0]["start_time"] = block_group[0]["constraints"][0].min
+                    # If there's a block group constraint, use it
+                    if block_group[0]["constraints"] is not None:
+                        block_group[0]["start_time"] = block_group[0]["constraints"][0].min 
                     else:
-                        # Otherwise, use the last end time
+                        # Use the last end time if schedule exists
                         block_group[0]["start_time"] = schedule[-1]["end_time"]
-                else:
-                    # If there's no block group constraint, use the last end time
-                    block_group[0]["start_time"] = schedule[-1]["end_time"]
 
-                # Calculate transition time
-                transition_time = reconfig_file.calc_reconfig_time_blocks(
-                    block_group[0], schedule[-1], location, verbose=False)
-                
-                # If last end time + transition time is greater than start time, 
-                # use last end time
-                if block_group[0]["start_time"] < schedule[-1]["end_time"] + transition_time:
-                    block_group[0]["start_time"] = schedule[-1]["end_time"] + transition_time
+                    # Calculate transition time
+                    transition_time = reconfig_file.calc_reconfig_time_blocks(
+                        block_group[0], schedule[-1], location, verbose=False)
+                    
+                    # Add transition time to start time
+                    block_group[0]["start_time"] = block_group[0]["start_time"] + transition_time
+                else:
+                    # If schedule is empty, use sunset time
+                    block_group[0]["start_time"] = start_time
 
             except Exception as e:
-                print(f"Error in scheduler: {e}")
-                # If there's a block group constraint, use it
-                if block_group[0]["constraints"] is not None:
-                    block_group[0]["start_time"] = block_group[0]["constraints"][0].min
-                else:
-                    block_group[0]["start_time"] = start_time
+                print(f"Notice: Starting new schedule at sunset ({e})")
+                block_group[0]["start_time"] = start_time
 
         # Calculate end time from transition times
         for i, block in enumerate(block_group):    
@@ -106,16 +104,17 @@ def basic_scheduler(block_group, schedule):
                 return schedule
             else:
                 next_block = block_group[i + 1]
-            next_obj = next_block["target"]
-            
-            transition_time = reconfig_file.calc_reconfig_time_blocks(
-                block, next_block, location, verbose=False)
-            total_time = transition_time + block["duration"]
-            block["end_time"] = block["start_time"] + total_time
-            next_block["start_time"] = block["end_time"]
-            schedule.append(block)              
-            if block["end_time"] > end_time:
-                print("End time is greater than sunrise")
+                next_obj = next_block["target"]
+                
+                transition_time = reconfig_file.calc_reconfig_time_blocks(
+                    block, next_block, location, verbose=False)
+                total_time = transition_time + block["duration"]
+                block["end_time"] = block["start_time"] + total_time
+                next_block["start_time"] = block["end_time"]
+                schedule.append(block)              
+                
+                if block["end_time"] > end_time:
+                    print("End time is greater than sunrise")
 
     return schedule
 
@@ -138,5 +137,29 @@ if len(scheduled_blocks) > 0:
         print(f"End time: {block['end_time'].iso}")
         print(f"Status: {block['status']}")
         print(f"Message: {block['message']}")
+    
+    # Save schedule to ECSV file with unique name
+    first_time = scheduled_blocks[0]["start_time"].strftime("%Y-%m-%dT%H-%M-%S")
+    base_filename = f"schedule_vini_{first_time}.ecsv"
+    
+    # Find a unique filename by adding a counter if needed
+    counter = 1
+    filename = base_filename
+    while True:
+        try:
+            save_schedule_to_ecsv(scheduled_blocks, filename)
+            # Get the full path to the saved file
+            full_path = os.path.abspath(os.path.join('tests', 'bin', filename))
+            print(f"\nSchedule saved to {filename}")
+            print(f"Full path: {full_path}")
+            
+            # Read and display the ECSV file in tabular format using the full path
+            table = Table.read(full_path, format='ascii.ecsv')
+            print("\nSchedule in tabular format:")
+            print(table)
+            break
+        except FileExistsError:
+            filename = f"schedule_vini_{first_time}_{counter}.ecsv"
+            counter += 1
 else:
     print("No blocks were scheduled")
