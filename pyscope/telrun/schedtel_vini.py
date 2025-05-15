@@ -148,15 +148,9 @@ if len(scheduled_blocks) > 0:
     while True:
         try:
             save_schedule_to_ecsv(scheduled_blocks, filename)
-            # Get the full path to the saved file
             full_path = os.path.abspath(os.path.join('tests', 'bin', filename))
             print(f"\nSchedule saved to {filename}")
             print(f"Full path: {full_path}")
-            
-            # Read and display the ECSV file in tabular format using the full path
-            table = Table.read(full_path, format='ascii.ecsv')
-            print("\nSchedule in tabular format:")
-            print(table)
             break
         except FileExistsError:
             filename = f"schedule_vini_{first_time}_{counter}.ecsv"
