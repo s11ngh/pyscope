@@ -94,7 +94,7 @@ for priority, bandpass in enumerate(['B', 'G', 'R']):
         "pm_ra_cosdec": 0 * u.arcsec/u.hour,
         "pm_dec": 0 * u.arcsec/u.hour,
     }
-    
+    block_group.append(m13_block)
     
 
 
