@@ -136,7 +136,7 @@ def create_priority_schedule(
             durations[i] = duration * u.minute  # Default to minutes if no unit specified
     
     # Handle configuration
-    if configuration is None:
+    if len(configuration) == 0 or configuration is None:
         configuration = [{}] * n_targets
     elif not isinstance(configuration, list):
         configuration = [configuration] * n_targets

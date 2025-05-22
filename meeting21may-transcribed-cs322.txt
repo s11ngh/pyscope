@@ -1,0 +1,941 @@
+
+[00:00:00.000 --> 00:00:02.720]   >> That's clearly not actually the problem.
+[00:00:02.720 --> 00:00:03.760]   >> Okay.
+[00:00:03.760 --> 00:00:09.320]   >> So the requirement is that we want some minimum size blocks,
+[00:00:09.320 --> 00:00:11.920]   but they can clearly go very small from
+[00:00:11.920 --> 00:00:13.640]   their own right what they're doing.
+[00:00:13.640 --> 00:00:14.360]   >> Yeah.
+[00:00:14.360 --> 00:00:16.640]   >> So what's the real challenge?
+[00:00:16.640 --> 00:00:20.880]   Well, the challenge likely is there's hard code of values.
+[00:00:20.880 --> 00:00:26.640]   >> Okay. So the hard code of values is the problem,
+[00:00:26.640 --> 00:00:33.200]   so if we can make that into something that can be changed.
+[00:00:33.200 --> 00:00:36.640]   We have code or however they call the function,
+[00:00:36.640 --> 00:00:39.300]   if it can become a not a hard code,
+[00:00:39.300 --> 00:00:42.080]   I think is that something they're looking for?
+[00:00:42.080 --> 00:00:43.800]   Because that wouldn't that be?
+[00:00:43.800 --> 00:00:47.120]   I mean, it doesn't sound like a very hard to do thing.
+[00:00:47.120 --> 00:00:49.120]   >> No, this project was not very hard.
+[00:00:49.120 --> 00:00:50.540]   >> Okay. Yeah.
+[00:00:50.540 --> 00:00:55.000]   >> The biggest role for software engineering always,
+[00:00:55.000 --> 00:00:59.400]   and this time last term, the next term I teach it,
+[00:00:59.400 --> 00:01:01.280]   it is not the project.
+[00:01:01.280 --> 00:01:08.040]   It is getting four people to work on one thing and learn how to do a project.
+[00:01:08.040 --> 00:01:09.480]   >> Right.
+[00:01:09.480 --> 00:01:12.000]   >> Which I know is not what you guys like to hear.
+[00:01:12.000 --> 00:01:15.280]   You guys like to solve computational problems, right?
+[00:01:15.280 --> 00:01:16.600]   You're building software.
+[00:01:16.600 --> 00:01:17.320]   >> Yeah.
+[00:01:17.320 --> 00:01:23.080]   >> But it's all the insularily pieces
+[00:01:23.080 --> 00:01:26.880]   that what you're really learning, right?
+[00:01:26.880 --> 00:01:30.360]   You're getting a project or it feels silly.
+[00:01:30.360 --> 00:01:31.760]   I understand that.
+[00:01:31.760 --> 00:01:35.600]   Trello is probably slightly superior, I just am lazy.
+[00:01:35.600 --> 00:01:42.040]   But that skill, you'll need to use on every project going forward,
+[00:01:42.040 --> 00:01:45.120]   regardless of your employer.
+[00:01:45.120 --> 00:01:46.440]   >> Yeah.
+[00:01:46.440 --> 00:01:54.280]   >> So your ability to, so you have your conversation with the stakeholders,
+[00:01:54.280 --> 00:01:58.040]   being able to pull a requirement out,
+[00:01:58.040 --> 00:02:03.040]   and then phrase it in such a way that we can even write a test from it.
+[00:02:03.040 --> 00:02:06.400]   The current scheduler is insufficient.
+[00:02:06.400 --> 00:02:11.640]   It's not a good requirement because it's not a test, right?
+[00:02:11.640 --> 00:02:15.120]   This requirement, the minimal time block should be X seconds long.
+[00:02:15.120 --> 00:02:17.760]   Well, I can test that.
+[00:02:17.760 --> 00:02:18.200]   >> Yeah.
+[00:02:18.200 --> 00:02:21.360]   >> But this test isn't helpful to us, right?
+[00:02:21.360 --> 00:02:24.640]   Because it doesn't lead us to writing better code.
+[00:02:24.640 --> 00:02:27.600]   Is this testing the state of the system?
+[00:02:27.600 --> 00:02:27.920]   >> Yeah.
+[00:02:27.920 --> 00:02:30.880]   >> So something we could implement.
+[00:02:30.880 --> 00:02:36.840]   But the tests we actually want are like the one I wrote above,
+[00:02:36.840 --> 00:02:41.400]   where we define our abstract test, say, given a single target that can be scheduled.
+[00:02:41.400 --> 00:02:42.640]   It should be scheduled, right?
+[00:02:42.640 --> 00:02:47.100]   This is the most basic definition of a scheduler ever, right?
+[00:02:47.100 --> 00:02:47.800]   >> Right.
+[00:02:47.800 --> 00:02:50.200]   >> If we can do it, we can do it.
+[00:02:50.200 --> 00:02:54.360]   Well, then we can define a concrete input, right?
+[00:02:54.360 --> 00:03:00.560]   So what's an exact star that we know can be scheduled on a set observer,
+[00:03:00.560 --> 00:03:04.280]   transitor, and constraint package?
+[00:03:04.280 --> 00:03:08.600]   Given that, we know exactly what the answer should be, right?
+[00:03:08.600 --> 00:03:08.720]   >> Right.
+[00:03:08.720 --> 00:03:11.840]   >> A single, you know about the relation block.
+[00:03:11.840 --> 00:03:16.560]   Given this information, we can now write a single test.
+[00:03:16.560 --> 00:03:24.840]   We now need to repeat this for every possible expected behavior of our system.
+[00:03:24.840 --> 00:03:26.360]   >> Mm-hmm.
+[00:03:26.360 --> 00:03:28.280]   >> Yeah.
+[00:03:28.280 --> 00:03:29.080]   >> Okay.
+[00:03:29.080 --> 00:03:31.720]   >> So this is why I keep railing into on tests.
+[00:03:31.720 --> 00:03:34.760]   Because the only way, so the code you've written right,
+[00:03:34.760 --> 00:03:38.320]   if we get priorities that we're working and it's seemingly working,
+[00:03:38.320 --> 00:03:41.440]   that solves probably back those problems, right?
+[00:03:41.440 --> 00:03:44.160]   We've added the ability to do one-two priority.
+[00:03:44.160 --> 00:03:47.880]   We're using quality score to improve the placement into the night.
+[00:03:47.880 --> 00:03:53.680]   They can always override, right, by adding our own observation blocks on top.
+[00:03:53.680 --> 00:03:54.440]   Great.
+[00:03:54.440 --> 00:03:57.960]   We are no worse than the status quo, right?
+[00:03:57.960 --> 00:04:00.920]   We have added functionality, but it's not any worse.
+[00:04:00.920 --> 00:04:08.000]   >> So you're saying, one, if we can get this hard-coded value for
+[00:04:08.000 --> 00:04:13.680]   taking, if we can make that dynamic, and achieve priority scheduling,
+[00:04:13.680 --> 00:04:16.160]   that is a really good-
+[00:04:16.160 --> 00:04:19.040]   >> I would just change schedule one.
+[00:04:19.040 --> 00:04:20.280]   >> Okay.
+[00:04:20.280 --> 00:04:23.680]   Just priority scheduling, do you say?
+[00:04:23.680 --> 00:04:30.360]   >> Yeah, but, and this is where I think you're trying to find more pieces to do.
+[00:04:30.360 --> 00:04:31.560]   >> Right.
+[00:04:31.560 --> 00:04:35.440]   >> Where what I'm saying to you is the piece you have in front of you is not done.
+[00:04:35.440 --> 00:04:36.560]   >> Okay.
+[00:04:36.560 --> 00:04:41.160]   And getting the code to work is probably 10 percent of our effort.
+[00:04:41.160 --> 00:04:43.000]   >> Right.
+[00:04:43.000 --> 00:04:46.840]   >> So once you have the sequential scheduler working,
+[00:04:46.840 --> 00:04:48.320]   you could do priority if you want.
+[00:04:48.320 --> 00:04:51.160]   It's a sequential might be simpler from a testing perspective.
+[00:04:51.160 --> 00:04:55.200]   >> Do you mean just simply like using the AstroPanc sequential scheduler?
+[00:04:55.200 --> 00:04:58.840]   Because that, I mean, it is working from what I've tested.
+[00:04:58.840 --> 00:05:04.880]   >> Right, and the answer I would have to you is if you have tested, send me those tests.
+[00:05:04.880 --> 00:05:05.480]   >> Okay.
+[00:05:05.480 --> 00:05:10.320]   >> Because I think when you say test, it means you ran it and looked at the output.
+[00:05:10.320 --> 00:05:14.920]   >> No, I've written tests too where I've, so first it was hard-coded,
+[00:05:14.920 --> 00:05:20.520]   but then I converted the hard code into a dynamic function where it can take inputs.
+[00:05:20.520 --> 00:05:24.760]   And then I wrote tests where it would input different targets.
+[00:05:24.760 --> 00:05:28.400]   So I made tests where things did not have conflicts.
+[00:05:28.400 --> 00:05:33.280]   And I saw, and if it generated a schedule, good.
+[00:05:33.280 --> 00:05:37.720]   And then I had the ones I said the three tests failed were the tests where I
+[00:05:37.720 --> 00:05:42.240]   deliberately set targets that would conflict.
+[00:05:42.240 --> 00:05:45.400]   So I'll have to go back and look at that, but essentially it was actual tests.
+[00:05:45.400 --> 00:05:48.160]   It was py tests were in, py tests.
+[00:05:48.160 --> 00:05:48.920]   >> And that's what I'm saying.
+[00:05:48.920 --> 00:05:54.080]   So now we have py tests, so now we need to define those tests better.
+[00:05:54.080 --> 00:05:58.880]   Right, on a golden program, let's say this actual scheduler is golden here,
+[00:05:58.880 --> 00:06:00.680]   making some assumptions.
+[00:06:00.680 --> 00:06:04.720]   But on a program, we expect to work, all our tests would pass.
+[00:06:04.720 --> 00:06:07.240]   And we should know clearly why they do work.
+[00:06:07.240 --> 00:06:12.160]   The fact that those three failed means that we assumed what the Oracle is, right?
+[00:06:12.160 --> 00:06:12.840]   >> Yeah.
+[00:06:12.840 --> 00:06:14.600]   >> Oh, correct.
+[00:06:14.600 --> 00:06:17.480]   So let's go through your set of tests.
+[00:06:17.480 --> 00:06:17.840]   >> Right.
+[00:06:17.840 --> 00:06:22.680]   >> And do this formatting, like this abstract test concrete input.
+[00:06:22.680 --> 00:06:23.000]   >> Okay.
+[00:06:23.000 --> 00:06:27.280]   >> Because then we can go and say, well, what are we missing?
+[00:06:27.280 --> 00:06:31.920]   >> What if we do the one I just described here about with star two?
+[00:06:31.920 --> 00:06:33.880]   >> Okay.
+[00:06:33.880 --> 00:06:37.080]   >> Right, it still passed, right?
+[00:06:37.080 --> 00:06:40.640]   Star two should still be scheduleable if there's no conflicts.
+[00:06:40.640 --> 00:06:42.600]   >> Great.
+[00:06:42.600 --> 00:06:48.480]   >> What if I wrote a test where star three never rises above the horizon?
+[00:06:48.480 --> 00:06:52.280]   Well, now the expected output is no schedule, right?
+[00:06:52.280 --> 00:06:54.680]   >> Yeah.
+[00:06:54.680 --> 00:07:01.960]   >> So if we write our tests very explicitly from this mindset,
+[00:07:01.960 --> 00:07:08.440]   whenever you go and have an issue, you can one, see immediately where your assumptions were, right?
+[00:07:08.440 --> 00:07:10.200]   >> Okay.
+[00:07:10.200 --> 00:07:15.360]   >> And then two, once we have a set of these, 15, 20, whatever number you want to come up,
+[00:07:15.360 --> 00:07:17.480]   you know, more is better.
+[00:07:17.480 --> 00:07:21.360]   We can then express confidence to Mac.
+[00:07:21.360 --> 00:07:22.000]   >> Right.
+[00:07:22.000 --> 00:07:29.320]   >> So hey, macro, if you give me an arbitrary schedule, I have shows list of tests,
+[00:07:29.320 --> 00:07:32.920]   confidence that we handle most situations.
+[00:07:32.920 --> 00:07:36.120]   These are the places we haven't fully evaluated.
+[00:07:36.120 --> 00:07:43.160]   We think now, if you use our scheduler, you will be able to reduce man hours required
+[00:07:43.160 --> 00:07:47.320]   to schedule per night with this.
+[00:07:47.320 --> 00:07:52.360]   If you still need to manually change the schedule, this is how you can do it,
+[00:07:52.360 --> 00:07:54.800]   and then give them a script to override.
+[00:07:54.800 --> 00:07:57.800]   >> Okay.
+[00:07:57.800 --> 00:07:59.520]   >> Because, right, that's what we want to do.
+[00:07:59.520 --> 00:08:04.880]   At the end of this term, we want to be able to say, hey, macro, here's my poll request.
+[00:08:04.880 --> 00:08:09.480]   This is what we changed, and this is how it now works.
+[00:08:09.480 --> 00:08:13.640]   >> I see.
+[00:08:13.640 --> 00:08:21.840]   >> Okay, so, again, just wanted to get a -- the bottom line is we have to --
+[00:08:21.840 --> 00:08:27.760]   first, I'll send you those tests, number two, this is the quantity you said,
+[00:08:27.760 --> 00:08:30.360]   the minimal time block.
+[00:08:30.360 --> 00:08:36.640]   See, test this thing, write pi test for this, is that something we're just supposed
+[00:08:36.640 --> 00:08:41.920]   to do still, reducing the hard code of time, making it dynamic.
+[00:08:41.920 --> 00:08:43.360]   >> If we had time.
+[00:08:43.360 --> 00:08:47.640]   >> But sequential to scheduler working, write tests for it.
+[00:08:47.640 --> 00:08:54.400]   Once we have confidence in the sequential scheduler, we can move to priority.
+[00:08:54.400 --> 00:09:02.360]   Priority adds quality score, which I agree with you, is computationally expensive.
+[00:09:02.360 --> 00:09:03.360]   That's the cost of scheduling.
+[00:09:03.360 --> 00:09:08.200]   If scheduling takes four hours to run, it simply means we have to start scheduling
+[00:09:08.200 --> 00:09:15.640]   at 4 p.m., so like four hours is not too long.
+[00:09:15.640 --> 00:09:20.880]   Maybe it is, you know, we could ask them tomorrow, right, if you had it working.
+[00:09:20.880 --> 00:09:25.000]   But these are the sorts of deals, right, we could check at our end of sprint.
+[00:09:25.000 --> 00:09:28.760]   Scrums of like, I have this version working.
+[00:09:28.760 --> 00:09:32.400]   How could we infer it?
+[00:09:32.400 --> 00:09:35.480]   But that requires us to have a working version, right?
+[00:09:35.480 --> 00:09:41.560]   So the big things I would say is if you've functioned off your program to run with the
+[00:09:41.560 --> 00:09:49.120]   pi test, make sure you followed good, iconic documentation, right, so that else could use
+[00:09:49.120 --> 00:09:54.600]   your function outside of your tests.
+[00:09:54.600 --> 00:10:00.440]   Document the crap out of your tests, like really be explicit.
+[00:10:00.440 --> 00:10:06.640]   And it's partially for you, partially for me, but really it's the only way you're going
+[00:10:06.640 --> 00:10:11.720]   to get this pull request accepted.
+[00:10:11.720 --> 00:10:14.960]   Because right, in order to get a pull request accepted, we need documentation that your
+[00:10:14.960 --> 00:10:21.240]   fix, one, helps them, and two, doesn't break anything else.
+[00:10:21.240 --> 00:10:30.240]   But something I'm still not very sure on is that I still don't see like a, except for
+[00:10:30.240 --> 00:10:38.440]   I see, okay, a hard coded stuff, except for that, I don't see any explicit, like, problem
+[00:10:38.440 --> 00:10:44.520]   with the sequential scheduler, because whenever I ask it to schedule things, this is from
+[00:10:44.520 --> 00:10:51.000]   my testing where I manually testing, I never saw anything out of the blue from my knowledge
+[00:10:51.000 --> 00:10:54.320]   and there was, I never saw a time conflict, I never saw.
+[00:10:54.320 --> 00:10:58.520]   Oh, sequential scheduler works, yeah, that's not the issue.
+[00:10:58.520 --> 00:11:05.520]   They're not using sequential scheduler one, two, sequential scheduler works because it's
+[00:11:05.520 --> 00:11:06.520]   sequential.
+[00:11:06.520 --> 00:11:13.440]   There's no math behind it, sequential scheduler will put your block in the worst possible
+[00:11:13.440 --> 00:11:20.640]   quality score in existence rather than waiting an hour till when it's better, yep, right.
+[00:11:20.640 --> 00:11:21.640]   And that's a problem.
+[00:11:21.640 --> 00:11:28.080]   They want the best photos through the night, not just all the photos.
+[00:11:28.080 --> 00:11:35.920]   So good logic would be, let's say for example, let's say without priority for now would be
+[00:11:35.920 --> 00:11:45.040]   that it scans through the night, scans through the night and uses constraints and the filters
+[00:11:45.040 --> 00:11:50.520]   to kind of, essentially the quality score, uses that to find the best slot throughout
+[00:11:50.520 --> 00:11:59.160]   the night and finds the best, I mean, the best possible picture for almost, I mean, whatever
+[00:11:59.160 --> 00:12:02.640]   is possible for all images that need to be taken.
+[00:12:02.640 --> 00:12:09.520]   Yes, we want to effectively do a dynamic programming problem where we maximize the quality of
+[00:12:09.520 --> 00:12:18.360]   every image taken and maximize the number of pictures taken, right, just two of things.
+[00:12:18.360 --> 00:12:22.880]   There's actually a third and I'm going to tell you right now, do not put any mental effort
+[00:12:22.880 --> 00:12:23.880]   towards this.
+[00:12:23.880 --> 00:12:24.880]   Okay.
+[00:12:24.880 --> 00:12:30.760]   The third thing we want to minimize is transition time, okay, and this gets back to what you've
+[00:12:30.760 --> 00:12:37.000]   brought up before when in your requirements, but that one's hard, yep.
+[00:12:37.000 --> 00:12:43.760]   The concept of minimizing transition time as a third objective for our search makes the
+[00:12:43.760 --> 00:12:49.520]   search complicated because transition time is not a fixed value, right, so dynamic property
+[00:12:49.520 --> 00:12:53.160]   of the system depending on telescope location.
+[00:12:53.160 --> 00:12:56.720]   Do I think that's something we could write an algorithm to solve?
+[00:12:56.720 --> 00:12:58.960]   100%.
+[00:12:58.960 --> 00:13:01.320]   That will take us multiple weeks.
+[00:13:01.320 --> 00:13:02.320]   Yeah.
+[00:13:02.320 --> 00:13:08.940]   So, don't worry about stage three, but stage one and two, definitely do it well, right?
+[00:13:08.940 --> 00:13:12.360]   Can we do the observation as good as we can?
+[00:13:12.360 --> 00:13:14.080]   Can we do as many of them as we can?
+[00:13:14.080 --> 00:13:15.080]   Okay.
+[00:13:15.080 --> 00:13:16.480]   I think that's relatively reasonable.
+[00:13:16.480 --> 00:13:17.480]   Yeah.
+[00:13:17.480 --> 00:13:20.480]   The priority scheduler out of the box, I believe, does that.
+[00:13:20.480 --> 00:13:21.480]   Yeah.
+[00:13:21.480 --> 00:13:23.440]   Yeah, it does.
+[00:13:23.440 --> 00:13:28.160]   I think so the, the asterisk there is I don't know that it's correct.
+[00:13:28.160 --> 00:13:29.160]   Okay.
+[00:13:29.160 --> 00:13:34.160]   Right, I, I, the astro plan tests exist, but they aren't great.
+[00:13:34.160 --> 00:13:36.280]   This is why we really need to test a bunch of things.
+[00:13:36.280 --> 00:13:37.280]   Yeah.
+[00:13:37.280 --> 00:13:42.520]   Something I noticed when I was manually using the priority scheduler is that it kind of
+[00:13:42.520 --> 00:13:50.760]   factors in three things when it does that, filters, constraints, and the priority you
+[00:13:50.760 --> 00:13:51.760]   give it.
+[00:13:51.760 --> 00:13:56.200]   So, when I was trying to give it, you know, a list of priority I have, it wouldn't, it
+[00:13:56.200 --> 00:14:02.400]   wouldn't actually use that it would, it would, it wouldn't do it exactly in that order,
+[00:14:02.400 --> 00:14:08.360]   which kind of means that it was trying to find the best time, I assume, or the best quality
+[00:14:08.360 --> 00:14:09.760]   score for the images.
+[00:14:09.760 --> 00:14:16.000]   And it is only when I completely remove all constraints and, and I remove filters is when
+[00:14:16.000 --> 00:14:22.760]   it completely blindly followed my priorities, one, two, three, whatever it was.
+[00:14:22.760 --> 00:14:27.800]   So I assume it's kind of doing a combination of that from, but no, we should have that
+[00:14:27.800 --> 00:14:29.800]   algorithm written out on paper perfectly.
+[00:14:29.800 --> 00:14:30.800]   Okay.
+[00:14:30.800 --> 00:14:32.440]   You shouldn't be making any assumptions here.
+[00:14:32.440 --> 00:14:33.440]   Yeah.
+[00:14:33.440 --> 00:14:38.280]   If you, if we're using the default as a priority scheduler, we should know exactly what it's
+[00:14:38.280 --> 00:14:44.920]   using to determine placement and since we're writing tests, we can actually determine that.
+[00:14:44.920 --> 00:14:45.920]   Okay.
+[00:14:45.920 --> 00:14:49.760]   Write a test for two conflict, we're going to get one of them to be scheduled.
+[00:14:49.760 --> 00:14:54.520]   Well, why was that choice taken?
+[00:14:54.520 --> 00:14:56.800]   Okay.
+[00:14:56.800 --> 00:15:03.800]   And right, then we just added to the test saying, I expect this to happen every time.
+[00:15:03.800 --> 00:15:09.160]   Because right, we expect this to be a deterministic Paul process.
+[00:15:09.160 --> 00:15:10.560]   Yeah.
+[00:15:10.560 --> 00:15:18.680]   I mean, what do you, uh, think I should focus on.
+[00:15:18.680 --> 00:15:22.200]   I mean, which one should I dedicate most of my time to?
+[00:15:22.200 --> 00:15:28.320]   Is it the sequential or the priority and then improving and achieving, uh, better scheduling,
+[00:15:28.320 --> 00:15:33.440]   which we just go like, you know, uh, best possible, the words are done with it.
+[00:15:33.440 --> 00:15:34.440]   Move on.
+[00:15:34.440 --> 00:15:35.440]   Okay.
+[00:15:35.440 --> 00:15:45.840]   Um, priority, right is priority based on the quality score, which the user priority are
+[00:15:45.840 --> 00:15:52.920]   one to switch is literally just splitting our observation blocks into subgroups and running
+[00:15:52.920 --> 00:15:56.200]   them after each other, right?
+[00:15:56.200 --> 00:16:01.440]   So we run the ones we run the two is, and then, and then we run the ones that weren't
+[00:16:01.440 --> 00:16:02.440]   marked.
+[00:16:02.440 --> 00:16:03.440]   Okay.
+[00:16:03.440 --> 00:16:11.040]   Unless you have a different implementation of that, yeah, that's when my intuition is
+[00:16:11.040 --> 00:16:19.440]   that that's where I might be leaning because the priority scheduler, uh, has a lot of it's
+[00:16:19.440 --> 00:16:20.440]   quite complicated.
+[00:16:20.440 --> 00:16:23.840]   It has a lot of, uh, functionality that is interconnected.
+[00:16:23.840 --> 00:16:27.400]   So I'll try to understand it as much as I can.
+[00:16:27.400 --> 00:16:28.400]   We have to use it.
+[00:16:28.400 --> 00:16:29.400]   Yeah.
+[00:16:29.400 --> 00:16:32.200]   You do not use quality score or worse, worse, worse up.
+[00:16:32.200 --> 00:16:33.200]   Yeah.
+[00:16:33.200 --> 00:16:34.200]   I agree.
+[00:16:34.200 --> 00:16:39.240]   I'm just talking about the priority scheduler itself, the actual function, the school source
+[00:16:39.240 --> 00:16:40.240]   code.
+[00:16:40.240 --> 00:16:41.240]   I'm not talking at it right now.
+[00:16:41.240 --> 00:16:42.240]   It's a hundred lines.
+[00:16:42.240 --> 00:16:49.760]   Yeah, there's, yeah, but there's some car, yeah, it's not super long, but the sequential
+[00:16:49.760 --> 00:16:52.640]   I don't, so why don't we go through it and it's even documented.
+[00:16:52.640 --> 00:16:53.640]   It's pretty good.
+[00:16:53.640 --> 00:16:54.640]   Okay.
+[00:16:54.640 --> 00:17:00.040]   So make sure we don't schedule below horizon as it's first constraint check, um, define
+[00:17:00.040 --> 00:17:02.880]   our master schedule with a grid of time slots.
+[00:17:02.880 --> 00:17:04.400]   So that's our time resolution.
+[00:17:04.400 --> 00:17:06.480]   So we can set that as tiny as we want.
+[00:17:06.480 --> 00:17:12.160]   I'm assuming a tiny or time resolution increases computation time.
+[00:17:12.160 --> 00:17:16.400]   We're going to use a score to generate a score for every block.
+[00:17:16.400 --> 00:17:18.360]   Okay.
+[00:17:18.360 --> 00:17:22.560]   We sort the scores by their priority using merge sort.
+[00:17:22.560 --> 00:17:25.240]   So even it even tells us the algorithm it uses.
+[00:17:25.240 --> 00:17:26.240]   Yeah.
+[00:17:26.240 --> 00:17:30.000]   Um, for all sortedness, grab the first one.
+[00:17:30.000 --> 00:17:35.000]   So we're doing, uh, FIFO sorted by priority.
+[00:17:35.000 --> 00:17:41.360]   We then insert them in, we do some fun math, what it even says is just collapsing sub arrays.
+[00:17:41.360 --> 00:17:47.000]   Um, if all the constraints are passed, we don't have to do anything.
+[00:17:47.000 --> 00:17:51.800]   And then otherwise we need to see if we need to add in, uh, transit or blocks if there's
+[00:17:51.800 --> 00:17:52.800]   time for that.
+[00:17:52.800 --> 00:17:53.800]   Right.
+[00:17:53.800 --> 00:17:59.160]   If we can't schedule it, we added to unscheduled, return the schedule.
+[00:17:59.160 --> 00:18:01.160]   Yep.
+[00:18:01.160 --> 00:18:09.280]   Um, so like, are you kind of going through the code base and reading it in plain English
+[00:18:09.280 --> 00:18:10.280]   like that?
+[00:18:10.280 --> 00:18:13.560]   Like, how are you approaching understanding these functions?
+[00:18:13.560 --> 00:18:17.800]   Um, first, I was forced, I run it.
+[00:18:17.800 --> 00:18:22.280]   I try to see what, you know, what I zoomed myself putting that then I, I did go through
+[00:18:22.280 --> 00:18:27.800]   the code like that, but, um, how does running it tell us anything?
+[00:18:27.800 --> 00:18:32.800]   Um, I mean, in terms of the behavior, what, what is the state, what, how does it differ?
+[00:18:32.800 --> 00:18:39.400]   So kind of this running the same schedule in sequential versus here without giving it
+[00:18:39.400 --> 00:18:42.960]   explicit priority, I always wanted to see how it works and that would actually does
+[00:18:42.960 --> 00:18:43.960]   differ.
+[00:18:43.960 --> 00:18:48.480]   Um, when I don't, yeah, because it has explicit priority based on the quality score.
+[00:18:48.480 --> 00:18:49.480]   Yeah.
+[00:18:49.480 --> 00:18:51.160]   So I was trying to see that.
+[00:18:51.160 --> 00:18:56.920]   And then I did go here, um, I'll try to spend more, more time here understanding this and
+[00:18:56.920 --> 00:19:00.400]   seeing if I can, um, no, but we understand it now.
+[00:19:00.400 --> 00:19:01.400]   Yeah.
+[00:19:01.400 --> 00:19:02.400]   We just read through it.
+[00:19:02.400 --> 00:19:07.600]   So that's, I'm trying to stop you from spinning your wheels on things that we don't
+[00:19:07.600 --> 00:19:09.040]   need to spend more time on.
+[00:19:09.040 --> 00:19:10.040]   Okay.
+[00:19:10.040 --> 00:19:11.040]   Right.
+[00:19:11.040 --> 00:19:14.320]   I already scheduled their works based on quality score.
+[00:19:14.320 --> 00:19:18.840]   It is going to be slow or slow, but it does work.
+[00:19:18.840 --> 00:19:27.240]   So how can we make it, so what, what is it that is, um, stopping macro from using this
+[00:19:27.240 --> 00:19:31.560]   and how I mean, what is that, that I get.
+[00:19:31.560 --> 00:19:32.560]   Okay.
+[00:19:32.560 --> 00:19:33.560]   Testing.
+[00:19:33.560 --> 00:19:34.560]   Confidence.
+[00:19:34.560 --> 00:19:35.560]   Okay.
+[00:19:35.560 --> 00:19:42.200]   Confidence that if they, you know, because this, if they don't have a human in the loop,
+[00:19:42.200 --> 00:19:48.680]   this thing will actually go and create the best possible schedule and not, um, you know,
+[00:19:48.680 --> 00:19:52.640]   one schedule of something that could have been scheduled and we have to prove this be
+[00:19:52.640 --> 00:19:57.520]   a testing and documentation and, um, there's any, it's hard.
+[00:19:57.520 --> 00:20:00.640]   I definitely think there's a better algorithm than priority centrally.
+[00:20:00.640 --> 00:20:01.640]   Yeah.
+[00:20:01.640 --> 00:20:07.480]   But, um, I don't think we can write a new algorithm in the next, you know, 12 hours.
+[00:20:07.480 --> 00:20:08.480]   Okay.
+[00:20:08.480 --> 00:20:09.480]   So.
+[00:20:09.480 --> 00:20:17.760]   But I definitely think we could test this one where tomorrow you can go in there and
+[00:20:17.760 --> 00:20:19.840]   say, I have confidence that works.
+[00:20:19.840 --> 00:20:20.840]   Okay.
+[00:20:20.840 --> 00:20:25.400]   And I will tell you right now, my first question after you say you have confidence that works
+[00:20:25.400 --> 00:20:30.200]   is we better see a continuous integration output showing, you know, 50, 60 test passing,
+[00:20:30.200 --> 00:20:35.720]   or I'm going to come up with a test case on the fly that may or may not pass, right?
+[00:20:35.720 --> 00:20:37.720]   Right.
+[00:20:37.720 --> 00:20:46.360]   So like we really need to cover the functional space of the priority scheduler.
+[00:20:46.360 --> 00:20:47.360]   Okay.
+[00:20:47.360 --> 00:20:54.680]   But then, uh, there are some things such as, for example, uh, like I said that the conf,
+[00:20:54.680 --> 00:21:00.880]   the confidence, what we're trying to give them is that, okay, we, uh, okay, if you go
+[00:21:00.880 --> 00:21:06.880]   and schedule something, it won't neglect, uh, or, or unscheduled a block that could
+[00:21:06.880 --> 00:21:07.880]   have been scheduled.
+[00:21:07.880 --> 00:21:13.600]   Now, how do I, like, because I don't know astronomy, how do I make a test for this?
+[00:21:13.600 --> 00:21:19.480]   I don't know if, uh, if this block could be scheduled today.
+[00:21:19.480 --> 00:21:25.640]   So how do I write a test where I can write a assumption that, okay, you, it needs to
+[00:21:25.640 --> 00:21:31.400]   at least schedule these in the day where I can consider this a good schedule from micro
+[00:21:31.400 --> 00:21:32.400]   standards.
+[00:21:32.400 --> 00:21:40.520]   So the answer is astro pi slash astro plan has functions that allow you to find targets
+[00:21:40.520 --> 00:21:41.880]   in the sky.
+[00:21:41.880 --> 00:21:42.880]   So where something is?
+[00:21:42.880 --> 00:21:47.400]   So this is where you probably have to do a little play by fun coding to find out where
+[00:21:47.400 --> 00:21:49.680]   particular objects are in the sky.
+[00:21:49.680 --> 00:21:55.160]   The longer answer is you need to talk with stakeholders.
+[00:21:55.160 --> 00:21:58.760]   If you don't know stars, I don't know stars even, right?
+[00:21:58.760 --> 00:22:04.320]   Like I, I enjoy this topic, I have no idea where serious is in the sky at any given night,
+[00:22:04.320 --> 00:22:05.320]   right?
+[00:22:05.320 --> 00:22:13.200]   Like I could not tell you, but I do know Alex or Natalie or the discord channels more broadly.
+[00:22:13.200 --> 00:22:18.800]   If you asked, hey, I am looking for this condition, right?
+[00:22:18.800 --> 00:22:24.280]   So our abstract tests that I've written them here, if you notice, I didn't choose a star,
+[00:22:24.280 --> 00:22:28.080]   I just said star, right?
+[00:22:28.080 --> 00:22:33.840]   So we could write this and now change and say, well, what if my input is location A,
+[00:22:33.840 --> 00:22:48.240]   observer A, you know, but now we're going to have star one with constraint.
+[00:22:48.240 --> 00:23:02.440]   That star one is never above five degrees.
+[00:23:02.440 --> 00:23:05.560]   This is now a new test, right?
+[00:23:05.560 --> 00:23:08.760]   The previous one was just A star, no constraints on it.
+[00:23:08.760 --> 00:23:12.440]   This one's now never above the horizon, right?
+[00:23:12.440 --> 00:23:17.400]   I know it's my expected output as a layperson, right?
+[00:23:17.400 --> 00:23:21.320]   Is if the star never goes up on the horizon, I can never see it.
+[00:23:21.320 --> 00:23:24.920]   That makes sense.
+[00:23:24.920 --> 00:23:28.880]   Cool.
+[00:23:28.880 --> 00:23:34.000]   So now I can say our expected output is that it's not observable.
+[00:23:34.000 --> 00:23:49.960]   My next step is what star meets that right here, on X tape.
+[00:23:49.960 --> 00:23:50.960]   That's a question.
+[00:23:50.960 --> 00:23:56.120]   But that's a question we're allowed to ask and because you're asking a pointed directed
+[00:23:56.120 --> 00:23:57.120]   question, right?
+[00:23:57.120 --> 00:24:01.560]   You're not asking, oh, what thing should I test, right?
+[00:24:01.560 --> 00:24:03.360]   Because that's really the big question.
+[00:24:03.360 --> 00:24:04.880]   But we know what to test.
+[00:24:04.880 --> 00:24:09.620]   It's all possible combinations within reason.
+[00:24:09.620 --> 00:24:15.120]   What we want to ask stakeholder is particular domain knowledge we don't have.
+[00:24:15.120 --> 00:24:18.240]   I don't know what star meets this criteria.
+[00:24:18.240 --> 00:24:21.200]   They probably can tell us.
+[00:24:21.200 --> 00:24:28.080]   I'm assuming it's some southern, the southern north star, whatever that's called.
+[00:24:28.080 --> 00:24:38.920]   But if we're able to wait for tests in central way, the only piece missing is domain knowledge
+[00:24:38.920 --> 00:24:39.920]   questions.
+[00:24:39.920 --> 00:24:47.000]   We can definitely get the main knowledge from our domain knowledge experts.
+[00:24:47.000 --> 00:24:50.880]   So if you write a set of tests like that and you send me this list, I can get all the
+[00:24:50.880 --> 00:24:51.880]   knowledge.
+[00:24:51.880 --> 00:24:52.880]   Right?
+[00:24:52.880 --> 00:24:56.720]   Or you can post them in this court and hang out a little if I get answers to.
+[00:24:56.720 --> 00:24:57.720]   Okay.
+[00:24:57.720 --> 00:25:03.440]   So I should first focus on the non domain knowledge testing as much as I can, but I can reach
+[00:25:03.440 --> 00:25:05.440]   out to you or all that.
+[00:25:05.440 --> 00:25:08.440]   Ask those questions.
+[00:25:08.440 --> 00:25:09.440]   Yes.
+[00:25:09.440 --> 00:25:10.440]   Okay.
+[00:25:10.440 --> 00:25:14.280]   Well, when I say non domain knowledge, I would say write full test.
+[00:25:14.280 --> 00:25:15.280]   Okay.
+[00:25:15.280 --> 00:25:16.280]   Can you tell me?
+[00:25:16.280 --> 00:25:17.280]   When you have a gap.
+[00:25:17.280 --> 00:25:18.280]   Okay.
+[00:25:18.280 --> 00:25:24.720]   You can tell me what some tests would be, which, you know, after which I'd be able to
+[00:25:24.720 --> 00:25:31.160]   do it, so what do we want to test under this?
+[00:25:31.160 --> 00:25:35.960]   So words would be, you know, without it giving you priority.
+[00:25:35.960 --> 00:25:40.360]   How does it mean that we call it?
+[00:25:40.360 --> 00:25:41.840]   Now, again, this is.
+[00:25:41.840 --> 00:25:48.800]   So what I would say is I would not worry about user priority at all.
+[00:25:48.800 --> 00:25:49.800]   Okay.
+[00:25:49.800 --> 00:25:50.800]   Right.
+[00:25:50.800 --> 00:25:51.800]   So priority becomes.
+[00:25:51.800 --> 00:25:58.400]   Because user priority is based on our current algorithm uses one part, this three times,
+[00:25:58.400 --> 00:25:59.400]   right?
+[00:25:59.400 --> 00:26:00.400]   Right.
+[00:26:00.400 --> 00:26:04.520]   So that this trivial to test, you can test that later.
+[00:26:04.520 --> 00:26:13.920]   So priority becomes the best possible quality of image is that.
+[00:26:13.920 --> 00:26:34.440]   So priority schedule and you should prioritize all of these four that can be a test.
+[00:26:34.440 --> 00:26:43.680]   I will say though, when you're writing your tests, if you notice my input.
+[00:26:43.680 --> 00:26:50.440]   The input matters a lot, so if you have filters in your output, you're still not on the simplest
+[00:26:50.440 --> 00:26:51.440]   case.
+[00:26:51.440 --> 00:26:52.440]   Okay.
+[00:26:52.440 --> 00:26:59.880]   Which we should definitely test with filters and transitions.
+[00:26:59.880 --> 00:27:05.680]   I'm not saying not to test those, but those are more complicated tests.
+[00:27:05.680 --> 00:27:11.920]   The simplest image we can possibly take in a night is one exposure with one filter, right,
+[00:27:11.920 --> 00:27:17.760]   of one object once.
+[00:27:17.760 --> 00:27:21.080]   Okay.
+[00:27:21.080 --> 00:27:31.600]   The second simplest is one star one filter.
+[00:27:31.600 --> 00:27:47.960]   Let's say max number, I would expect no transitions.
+[00:27:47.960 --> 00:27:56.400]   I need one test, right?
+[00:27:56.400 --> 00:28:04.720]   So what would start, what assumptions you could be testing and what it would be the number
+[00:28:04.720 --> 00:28:11.440]   of expected observations or something else?
+[00:28:11.440 --> 00:28:15.600]   What do you think we can test on?
+[00:28:15.600 --> 00:28:23.360]   This and I think the next one could be, if you grab the starting end times from each
+[00:28:23.360 --> 00:28:29.440]   observation, make sure that if your time itself is not on to it, if it's going over
+[00:28:29.440 --> 00:28:30.440]   a lot.
+[00:28:30.440 --> 00:28:35.760]   Because that would be obvious failure that one observations and time and the next observation
+[00:28:35.760 --> 00:28:41.040]   start trying to pick conflicts, that can be true, so that could be one.
+[00:28:41.040 --> 00:28:46.420]   Is that what this test is testing though, specifically, you know?
+[00:28:46.420 --> 00:28:51.680]   So what I would say is if we want to test that there are no only life and observation
+[00:28:51.680 --> 00:28:56.960]   that we should write a test, we should test that separately, correct?
+[00:28:56.960 --> 00:29:04.480]   So each test has a very clear purpose, no test to do double f and of course, we might
+[00:29:04.480 --> 00:29:12.520]   have multiple assertions, which is kind of a faux pas, but each test should do one thing,
+[00:29:12.520 --> 00:29:13.520]   right?
+[00:29:13.520 --> 00:29:17.640]   Given a single target that can be scheduled, it should be scheduled.
+[00:29:17.640 --> 00:29:26.080]   Notice, I'm not asking if the schedule is optimal, I'm not asking if it took an efficient
+[00:29:26.080 --> 00:29:34.760]   amount of time, I'm simply saying, given a target that can be scheduled, we get a schedule.
+[00:29:34.760 --> 00:29:37.800]   It could be at the start of the night, it could be at the end of the night, it could
+[00:29:37.800 --> 00:29:44.440]   do something weird, but the test we write, what our search is going to be, is that.
+[00:29:44.440 --> 00:29:54.000]   When the observation block became scheduled, that I do the one star, one filter, one exposure,
+[00:29:54.000 --> 00:29:59.520]   an assertion we could do is that there's only one scheduled block, we're taking only one
+[00:29:59.520 --> 00:30:09.880]   picture, which only one picture, yeah, each observation represents a picture, so.
+[00:30:09.880 --> 00:30:15.400]   One star, one filter max number of exposures, while here we can calculate how many exposures
+[00:30:15.400 --> 00:30:22.280]   we could compute during the night's time limit, right, when the stars up in the sky.
+[00:30:22.280 --> 00:30:28.600]   Well, a trick here could be to choose a star that's always up above the horizon, and then
+[00:30:28.600 --> 00:30:34.840]   it's just, you know, night time to day time as our time limit, right?
+[00:30:34.840 --> 00:30:39.320]   We can compute the number of pictures that should be possible, and our schedule should
+[00:30:39.320 --> 00:30:40.320]   then match.
+[00:30:40.320 --> 00:30:51.320]   We could add an additional search to both of these things, but there are no transition
+[00:30:51.320 --> 00:30:57.480]   blocks, that a search should truly pass, but it could be something we can add, right?
+[00:30:57.480 --> 00:31:00.240]   What does it mean that it should not transition?
+[00:31:00.240 --> 00:31:06.520]   If I am taking a picture of the same thing over and over again, there is no transition.
+[00:31:06.520 --> 00:31:15.960]   Right, you don't have to move the telescope, yeah, that may not be a true assumption, but
+[00:31:15.960 --> 00:31:26.600]   I would write that as an assumption, okay, because here's the thing, we can write tests
+[00:31:26.600 --> 00:31:33.840]   that don't actually match the true astronomical constraints, right, as long as we've written
+[00:31:33.840 --> 00:31:39.120]   them in such a way that when they eventually fail, they can understand why they fail.
+[00:31:39.120 --> 00:31:45.520]   Okay, so then it's in their court to decide if that test failing is deterministic, you
+[00:31:45.520 --> 00:31:51.560]   know, saying, okay, we just have to make sure we do all the things.
+[00:31:51.560 --> 00:31:53.960]   No, we have to work with them, we're just out of time.
+[00:31:53.960 --> 00:31:54.960]   Okay, yeah.
+[00:31:54.960 --> 00:31:55.960]   I mean, for now, yeah.
+[00:31:55.960 --> 00:32:02.360]   So, like, I had 10 more weeks, I mean, what's all the issue of doing the act takes good
+[00:32:02.360 --> 00:32:08.680]   but this is an assumption, right, that I'm making.
+[00:32:08.680 --> 00:32:17.520]   So, testing like that, and the goal seems to be that we have to give them the confidence
+[00:32:17.520 --> 00:32:24.600]   that this will work and it's that, yeah, that's the focus, you know, if we had more time,
+[00:32:24.600 --> 00:32:29.320]   I'd say all these tests need to go and keep them to US testing environment that gets ran
+[00:32:29.320 --> 00:32:40.960]   every time the change is made, right, so this is how we get code accepted on open source
+[00:32:40.960 --> 00:32:41.960]   process.
+[00:32:41.960 --> 00:32:49.640]   We make a very small change to the code base, we document the crap out of why it works,
+[00:32:49.640 --> 00:32:53.600]   and then you can put a phone request in and then argue with people why they're version
+[00:32:53.600 --> 00:32:54.600]   of it.
+[00:32:54.600 --> 00:32:59.120]   Okay, but if we're just testing, I mean, are we going to be making a progress at all?
+[00:32:59.120 --> 00:33:06.200]   Yeah, if we're on our projects, the end of the board, yeah.
+[00:33:06.200 --> 00:33:15.680]   Okay, so, oh, the pool request would be for the testing, the test file.
+[00:33:15.680 --> 00:33:21.240]   No, the whole request is your schedule.
+[00:33:21.240 --> 00:33:22.240]   Okay.
+[00:33:22.240 --> 00:33:28.360]   I just can't pull requests your schedule until you have some tests for it.
+[00:33:28.360 --> 00:33:36.880]   So, I should, so, I mean, in the next 12 hours, I should focus on testing the priority scheduler
+[00:33:36.880 --> 00:33:44.080]   with what it's to take away or not.
+[00:33:44.080 --> 00:33:48.960]   Yeah, if we're trying to improve the priority schedule, that's a good place to start.
+[00:33:48.960 --> 00:33:49.960]   Okay.
+[00:33:49.960 --> 00:33:50.960]   Alan, have a presentation for tomorrow, right?
+[00:33:50.960 --> 00:33:51.960]   Your group's got 10 minutes.
+[00:33:51.960 --> 00:33:52.960]   Right.
+[00:33:52.960 --> 00:34:00.840]   It could be reasonably split up, expect questions, so, like, that's a priority for tomorrow.
+[00:34:00.840 --> 00:34:08.160]   Do you have a draft of your final process documentation yet?
+[00:34:08.160 --> 00:34:17.600]   Oh, final, which document does do, so our final draft report is due tomorrow.
+[00:34:17.600 --> 00:34:18.600]   Yeah.
+[00:34:18.600 --> 00:34:23.160]   The final final is due on final.
+[00:34:23.160 --> 00:34:24.160]   Okay.
+[00:34:24.160 --> 00:34:30.520]   In the works, but what will be the main focus of this final report draft?
+[00:34:30.520 --> 00:34:39.760]   Is it the entire, like, we have to document our entire term, how we handle it every week
+[00:34:39.760 --> 00:34:40.760]   or something?
+[00:34:40.760 --> 00:34:42.560]   How about that?
+[00:34:42.560 --> 00:34:43.560]   Correct.
+[00:34:43.560 --> 00:34:44.560]   Okay.
+[00:34:44.560 --> 00:34:48.000]   And I probably, you can do some by week, but.
+[00:34:48.000 --> 00:34:50.880]   I would try and follow roughly what it is.
+[00:34:50.880 --> 00:34:54.840]   I have a final report for it and a generated template.
+[00:34:54.840 --> 00:34:57.920]   If you follow the template, that is a C.
+[00:34:57.920 --> 00:34:58.920]   Okay.
+[00:34:58.920 --> 00:35:03.640]   I will warn you right now that the template is not sufficient.
+[00:35:03.640 --> 00:35:04.640]   Okay.
+[00:35:04.640 --> 00:35:12.520]   So, which template is that because this is the final release?
+[00:35:12.520 --> 00:35:22.800]   Okay, I see it's the generated template doc.
+[00:35:22.800 --> 00:35:24.840]   This would be insufficient.
+[00:35:24.840 --> 00:35:25.840]   Okay.
+[00:35:25.840 --> 00:35:31.840]   So, in terms of the length of stuff covered, the depth or-
+[00:35:31.840 --> 00:35:37.080]   The length of this document may exceed 6080 pages, like, don't worry about length, get
+[00:35:37.080 --> 00:35:38.080]   the content.
+[00:35:38.080 --> 00:35:39.080]   Okay.
+[00:35:39.080 --> 00:35:42.320]   So, you said the template will be insufficient in the sense that this is sufficient.
+[00:35:42.320 --> 00:35:43.320]   It's not detailed enough.
+[00:35:43.320 --> 00:35:44.320]   Right.
+[00:35:44.320 --> 00:35:45.320]   Very much correct.
+[00:35:45.320 --> 00:35:46.320]   Okay.
+[00:35:46.320 --> 00:35:47.320]   Yeah.
+[00:35:47.320 --> 00:35:50.560]   There's like, do your requirements aren't here?
+[00:35:50.560 --> 00:35:53.040]   Where's your process flow thing?
+[00:35:53.040 --> 00:35:59.040]   Actual detailed reflection on why things did or did not work.
+[00:35:59.040 --> 00:36:00.040]   Right.
+[00:36:00.040 --> 00:36:01.040]   So, what I was-
+[00:36:01.040 --> 00:36:05.360]   More UML diagrams of how your system architecture works.
+[00:36:05.360 --> 00:36:06.840]   Great.
+[00:36:06.840 --> 00:36:10.720]   All the things you've done over the term, you've done a lot.
+[00:36:10.720 --> 00:36:11.720]   Yep.
+[00:36:11.720 --> 00:36:13.440]   All we need to go into this document.
+[00:36:13.440 --> 00:36:20.160]   So, thanks, I said, because if I look back, I think a lot of time spent just deciding
+[00:36:20.160 --> 00:36:26.760]   what to work on from, you know, the parser to JSON to, so all of that should be documented
+[00:36:26.760 --> 00:36:31.880]   here that this was our focus and then this and this and how we finally came to do this.
+[00:36:31.880 --> 00:36:32.880]   Yeah.
+[00:36:32.880 --> 00:36:35.080]   And like, why was that the case?
+[00:36:35.080 --> 00:36:36.080]   Right.
+[00:36:36.080 --> 00:36:37.080]   So, like, how did you get-
+[00:36:37.080 --> 00:36:38.080]   Let us check.
+[00:36:38.080 --> 00:36:39.080]   What went wrong?
+[00:36:39.080 --> 00:36:40.080]   Okay.
+[00:36:40.080 --> 00:36:41.080]   Yeah.
+[00:36:41.080 --> 00:37:00.200]   I think the reason that was also who it was because at that point, we were really trying
+[00:37:00.200 --> 00:37:09.160]   to distribute workload, but then it wasn't- people weren't getting back with their work.
+[00:37:09.160 --> 00:37:12.720]   So, then you can write- and then I would write that, right?
+[00:37:12.720 --> 00:37:18.000]   The key that I'm going to say to you before, you know, the next time is you can't wait
+[00:37:18.000 --> 00:37:23.040]   to the end to tell each, you know, that people aren't contributing.
+[00:37:23.040 --> 00:37:24.040]   Yeah.
+[00:37:24.040 --> 00:37:28.040]   For a few days of being week four, we might be able to fix them.
+[00:37:28.040 --> 00:37:30.040]   Right.
+[00:37:30.040 --> 00:37:31.040]   We're now-
+[00:37:31.040 --> 00:37:32.040]   Right.
+[00:37:32.040 --> 00:37:33.040]   We're now-
+[00:37:33.040 --> 00:37:34.040]   We just-
+[00:37:34.040 --> 00:37:35.040]   There's nothing we can do.
+[00:37:35.040 --> 00:37:36.040]   Okay.
+[00:37:36.040 --> 00:37:37.040]   It sort of happened to them.
+[00:37:37.040 --> 00:37:38.040]   Like, I would definitely adopt your teammates today.
+[00:37:38.040 --> 00:37:44.440]   Yes, there's a lot of non-python things, like, if they still don't have Python down, one,
+[00:37:44.440 --> 00:37:47.480]   they should come see me, I could teach them Python in two hours, right?
+[00:37:47.480 --> 00:37:48.640]   It's pretty simple language.
+[00:37:48.640 --> 00:37:49.640]   Yeah.
+[00:37:49.640 --> 00:37:50.640]   Yeah.
+[00:37:50.640 --> 00:37:55.040]   And two, we should get them working on stuff that isn't Python.
+[00:37:55.040 --> 00:38:01.280]   Talking about your process workflow and GitHub projects requires no technical depth, right?
+[00:38:01.280 --> 00:38:07.080]   It requires you to understand what you've done for 10 months, but it doesn't require
+[00:38:07.080 --> 00:38:12.080]   you to know, you know, how does the priorities set a little bit?
+[00:38:12.080 --> 00:38:13.080]   Yeah.
+[00:38:13.080 --> 00:38:19.880]   So, if you can get ahold of them today, I would definitely task them out and get them working
+[00:38:19.880 --> 00:38:24.880]   on, you know, the draft of your final documentation, right?
+[00:38:24.880 --> 00:38:30.240]   Because we'll have a week from Thursday to, you know, a little over a week, like, nine
+[00:38:30.240 --> 00:38:36.080]   days or something, to get that document built in and in ship shape.
+[00:38:36.080 --> 00:38:37.080]   Got it.
+[00:38:37.080 --> 00:38:38.080]   Yeah.
+[00:38:38.080 --> 00:38:43.280]   But definitely submit a draft tomorrow so I can evaluate you and get you points.
+[00:38:43.280 --> 00:38:44.280]   Okay.
+[00:38:44.280 --> 00:38:45.280]   Right.
+[00:38:45.280 --> 00:38:46.280]   I have.
+[00:38:46.280 --> 00:38:48.080]   No, no, no, like, it's fine.
+[00:38:48.080 --> 00:38:49.080]   Yes.
+[00:38:49.080 --> 00:38:50.080]   Go ahead.
+[00:38:50.080 --> 00:38:51.080]   No, no, no.
+[00:38:51.080 --> 00:38:55.080]   Like, you just answered that question earlier about the final draft.
+[00:38:55.080 --> 00:38:59.080]   So, yeah, I get it, like, about the depth and everything.
+[00:38:59.080 --> 00:39:00.080]   Okay.
+[00:39:00.080 --> 00:39:07.480]   So, and I had a final question too, you mentioned the team thing being a major part.
+[00:39:07.480 --> 00:39:13.080]   So how would that affect grading for the class?
+[00:39:13.080 --> 00:39:21.080]   So, you can't change your teammates, but you can change how you work with them.
+[00:39:21.080 --> 00:39:22.080]   Okay.
+[00:39:22.080 --> 00:39:23.080]   Right.
+[00:39:23.080 --> 00:39:24.080]   Your teammates goes to you.
+[00:39:24.080 --> 00:39:25.080]   That's a problem.
+[00:39:25.080 --> 00:39:29.080]   But if you come to me, like this conversation right now is working in your advantage.
+[00:39:29.080 --> 00:39:30.080]   Right.
+[00:39:30.080 --> 00:39:32.080]   Because you have a problem, you've addressed it.
+[00:39:32.080 --> 00:39:35.080]   We're now trying to work for institutional.
+[00:39:35.080 --> 00:39:36.080]   Right.
+[00:39:36.080 --> 00:39:42.080]   So in order, you know, in a perfect world to help your guys's grades, because I know, ultimately,
+[00:39:42.080 --> 00:39:45.080]   that's what we care a lot about.
+[00:39:45.080 --> 00:39:48.080]   It's, you have to document this process.
+[00:39:48.080 --> 00:39:49.080]   Okay.
+[00:39:49.080 --> 00:39:53.080]   Your teammates, you know, they weren't contributing.
+[00:39:53.080 --> 00:39:54.080]   Great.
+[00:39:54.080 --> 00:39:56.080]   How did you go about improving this?
+[00:39:56.080 --> 00:40:00.080]   This is where this point assessments that we do every two weeks.
+[00:40:00.080 --> 00:40:04.080]   Is it allows you a means to provide feedback to me.
+[00:40:04.080 --> 00:40:06.080]   That's anonymous to your teammates, right?
+[00:40:06.080 --> 00:40:08.080]   They don't get to read your sprint assessments.
+[00:40:08.080 --> 00:40:09.080]   Okay.
+[00:40:09.080 --> 00:40:10.080]   What I do.
+[00:40:10.080 --> 00:40:15.080]   And I try and use them to influence my opinion of how the project started.
+[00:40:15.080 --> 00:40:21.080]   Yeah, because something similar happened last from 2019, except we were already honest.
+[00:40:21.080 --> 00:40:31.080]   And it was again, me and beneath, we, we had a game, we were the only team to make a 3D game was actually made it and we were ahead on our, on our promises every week.
+[00:40:31.080 --> 00:40:38.080]   So everything was going well, but we got a lower grade while our teammates, we didn't contribute.
+[00:40:38.080 --> 00:40:51.080]   You've got high grade, because of that term, professor, they didn't have time to review the spring log. So again, kind of say a similar thing happened.
+[00:40:51.080 --> 00:40:54.080]   So what I would say is it needs to be documented.
+[00:40:54.080 --> 00:40:55.080]   Yeah.
+[00:40:55.080 --> 00:40:56.080]   Right.
+[00:40:56.080 --> 00:40:57.080]   Two.
+[00:40:57.080 --> 00:41:02.080]   The challenge for you is telling me your teammates aren't helping isn't enough.
+[00:41:02.080 --> 00:41:06.080]   And I'm saying this in the sense of.
+[00:41:06.080 --> 00:41:08.080]   Right. And.
+[00:41:08.080 --> 00:41:12.080]   This is the final CS course, right? Like this is the big boy.
+[00:41:12.080 --> 00:41:17.080]   You're going to go off into the real world. Having the problems done enough, you need to work towards the solution.
+[00:41:17.080 --> 00:41:25.080]   So your teammates aren't going. Great. What was your solution? You started trying to help them teach Python. You started, you know, document the steps you took.
+[00:41:25.080 --> 00:41:26.080]   Yeah.
+[00:41:26.080 --> 00:41:33.080]   And then like it changed the past. So what I would have said is four weeks ago, you should have talked to me and really laid into me saying teammates aren't helping.
+[00:41:33.080 --> 00:41:35.080]   Can you get them on board?
+[00:41:35.080 --> 00:41:36.080]   Okay.
+[00:41:36.080 --> 00:41:39.080]   Right. Then I could have put my way to behind your problem as well.
+[00:41:39.080 --> 00:41:40.080]   Okay.
+[00:41:40.080 --> 00:41:44.080]   We can't change that. You do some week change left.
+[00:41:44.080 --> 00:41:48.080]   How can you spend the next week change to get them involved in the project?
+[00:41:48.080 --> 00:41:53.080]   Okay. Another thing I did before was so when I was learning about the.
+[00:41:53.080 --> 00:42:00.080]   Because when I was, I was going to the code base in the start of the term where where almost none of us includes the other team.
+[00:42:00.080 --> 00:42:01.080]   No one really knew.
+[00:42:01.080 --> 00:42:13.080]   And we're all trying to understand the code base was, whatever I was learning, I was kind of writing that down in my notes. And then I, I used to add GPD to formatted well in my channel.
+[00:42:13.080 --> 00:42:18.080]   I was sending it to all three of my teammates. And that was also a solution.
+[00:42:18.080 --> 00:42:21.080]   To get in this problem.
+[00:42:21.080 --> 00:42:26.080]   I think I might have it on my email somewhere documented.
+[00:42:26.080 --> 00:42:27.080]   I could include.
+[00:42:27.080 --> 00:42:31.080]   Like, that's the sort of deal where like I've never seen.
+[00:42:31.080 --> 00:42:32.080]   Oh, right.
+[00:42:32.080 --> 00:42:39.080]   Right. So like, yeah, the reason I agree with your 292 assessment that, you know, sometimes grades aren't fair.
+[00:42:39.080 --> 00:42:44.080]   But like it is really hard as we as an external evaluator, right?
+[00:42:44.080 --> 00:42:45.080]   To know what you've done.
+[00:42:45.080 --> 00:42:50.080]   Because for me, I look at your GitHub and you guys go five days between pushes, right?
+[00:42:50.080 --> 00:42:53.080]   So I'm like, shit, they didn't do anything on a weekend.
+[00:42:53.080 --> 00:42:55.080]   Well, I know that's not true.
+[00:42:55.080 --> 00:42:58.080]   Right? Because you guys are working. I get that.
+[00:42:58.080 --> 00:43:05.080]   But like when I don't see work, it is really hard for me to say, Hey, you know, I should give them the benefit of it out today.
+[00:43:05.080 --> 00:43:08.080]   Because, you know, I know they've been working really hard all night.
+[00:43:08.080 --> 00:43:09.080]   Yeah, I get that.
+[00:43:09.080 --> 00:43:20.080]   The only reason I wasn't sharing that is because again, that was a, those were very, you know, not super, like worthy of posting anywhere.
+[00:43:20.080 --> 00:43:25.080]   You have to share it with me, post them on the discord, right?
+[00:43:25.080 --> 00:43:29.080]   Or post them in some way that I have tangential evidence.
+[00:43:29.080 --> 00:43:31.080]   So like, I mean, wins is really good about this.
+[00:43:31.080 --> 00:43:38.080]   All they're scheduling is done on the discord. When they have technical challenges, they'll bring me on the discord.
+[00:43:38.080 --> 00:43:43.080]   And what do I do? I respond and then they keep moving, right?
+[00:43:43.080 --> 00:43:46.080]   So it's not that penguins is better than any other group.
+[00:43:46.080 --> 00:43:50.080]   They've just solved their problems in a day rather than a week.
+[00:43:50.080 --> 00:43:54.080]   And this is why, like, you guys are doing much better about this now.
+[00:43:54.080 --> 00:43:57.080]   We're like, we're having large scale discussions on discord.
+[00:43:57.080 --> 00:44:01.080]   Great. I appreciate it. It's like one of my responses, I was at a grocery store.
+[00:44:01.080 --> 00:44:05.080]   But like, I am generally interested in solving the scheduling problem.
+[00:44:05.080 --> 00:44:10.080]   So like, when you guys run into errors, I want to help.
+[00:44:10.080 --> 00:44:18.080]   Okay.
+[00:44:18.080 --> 00:44:21.080]   This is all the questions we have for now.
+[00:44:21.080 --> 00:44:26.080]   So bottom line is focus on, again, priority scheduler testing.
+[00:44:26.080 --> 00:44:31.080]   And if possible, any, any improvements, which.
+[00:44:31.080 --> 00:44:34.080]   Which is an end test for that.
+[00:44:34.080 --> 00:44:38.080]   Yes. So what I would do is write tests.
+[00:44:38.080 --> 00:44:40.080]   Write documentation.
+[00:44:40.080 --> 00:44:43.080]   So before you make any changes to priority scheduler,
+[00:44:43.080 --> 00:44:47.080]   I should be able to run priority scheduler, meaning an outside user.
+[00:44:47.080 --> 00:44:48.080]   Okay.
+[00:44:48.080 --> 00:44:50.080]   So your function should be well enough documented.
+[00:44:50.080 --> 00:44:52.080]   You should have some sort of read me.
+[00:44:52.080 --> 00:44:55.080]   Right. So that when I load your code tomorrow morning,
+[00:44:55.080 --> 00:45:00.080]   I can just naturally go Python three, your function enter in it runs, right?
+[00:45:00.080 --> 00:45:01.080]   Yeah.
+[00:45:01.080 --> 00:45:06.080]   Okay. And you want that the schedule, it generates you want those schedules to be
+[00:45:06.080 --> 00:45:12.080]   actually either printed or make an ECSV, you can review also.
+[00:45:12.080 --> 00:45:14.080]   ESCV would be great.
+[00:45:14.080 --> 00:45:18.080]   But remember, an ESCV output is one line.
+[00:45:18.080 --> 00:45:19.080]   Yeah.
+[00:45:19.080 --> 00:45:20.080]   Already declare.
+[00:45:20.080 --> 00:45:23.080]   So that, that really shouldn't add too much.
+[00:45:23.080 --> 00:45:24.080]   Yeah. Exactly.
+[00:45:24.080 --> 00:45:29.080]   I mean, you have documentation for, you know, an external user to run your
+[00:45:29.080 --> 00:45:31.080]   implementation of the scheduler.
+[00:45:31.080 --> 00:45:33.080]   Right. Your function call.
+[00:45:33.080 --> 00:45:37.080]   Then you can start writing tests for the changed behavior.
+[00:45:37.080 --> 00:45:42.080]   Right. If you want to improve it, write a test that you think will only pass on
+[00:45:42.080 --> 00:45:44.080]   your improved version.
+[00:45:44.080 --> 00:45:45.080]   Okay.
+[00:45:45.080 --> 00:45:49.080]   It should fail on priority scheduler default, right?
+[00:45:49.080 --> 00:45:50.080]   Got it.
+[00:45:50.080 --> 00:45:55.080]   But on your scheduler, it will now pass because yours is better.
+[00:45:55.080 --> 00:45:57.080]   So it shows the improvement.
+[00:45:57.080 --> 00:46:00.080]   Yes. But write the test first.
+[00:46:00.080 --> 00:46:03.080]   I get that's contradictory to kind of how we normally write code,
+[00:46:03.080 --> 00:46:06.080]   but it will lead to better code.
+[00:46:06.080 --> 00:46:10.080]   Because if you can write the test first, it means you know exactly what you're doing.
+[00:46:10.080 --> 00:46:13.080]   Right. What's the intent?
+[00:46:13.080 --> 00:46:15.080]   Okay.
+[00:46:15.080 --> 00:46:22.080]   And if you can write the test and the abstract test for input syntax,
+[00:46:22.080 --> 00:46:26.080]   put it into the score here or attach a document that has it.
+[00:46:26.080 --> 00:46:27.080]   Ting me.
+[00:46:27.080 --> 00:46:30.080]   I'm not going to make promises about the middle of the night, but you know,
+[00:46:30.080 --> 00:46:31.080]   who knows when I'll wake up.
+[00:46:31.080 --> 00:46:36.080]   I can definitely look at it and let you know what I think of your abstract
+[00:46:36.080 --> 00:46:39.080]   test and if it's enough.
+[00:46:39.080 --> 00:46:40.080]   Okay.
+[00:46:40.080 --> 00:46:41.080]   Yeah.
+[00:46:41.080 --> 00:46:42.080]   Right.
+[00:46:42.080 --> 00:46:45.080]   Let's say the first abstract test I wrote here, which is given a single target
+[00:46:45.080 --> 00:46:47.080]   that can be scheduled, be scheduled.
+[00:46:47.080 --> 00:46:49.080]   It's not a great abstract test, right?
+[00:46:49.080 --> 00:46:53.080]   It's kind of broad, trivially true, I guess.
+[00:46:53.080 --> 00:46:54.080]   Okay.
+[00:46:54.080 --> 00:46:59.080]   But like it is a abstract.
+[00:46:59.080 --> 00:47:01.080]   So like, get something down.
+[00:47:01.080 --> 00:47:04.080]   We can always refine it into better.
+[00:47:04.080 --> 00:47:06.080]   Go ahead.
+[00:47:06.080 --> 00:47:09.080]   Did we ever get that requirement document?
+[00:47:09.080 --> 00:47:12.080]   Yeah.
+[00:47:12.080 --> 00:47:14.080]   Did you send it to?
+[00:47:14.080 --> 00:47:15.080]   Yeah.
+[00:47:15.080 --> 00:47:16.080]   Okay.
+[00:47:16.080 --> 00:47:27.080]   So I'll drag and share it as a PDF on this one.
+[00:47:27.080 --> 00:47:30.080]   Yeah.
+[00:47:30.080 --> 00:47:44.080]   It says the system should minimize dead time between operations.
+[00:47:44.080 --> 00:47:50.080]   Replace manual scheduling with objective reproducible automation.
+[00:47:50.080 --> 00:47:52.080]   I assume this is talking about.
+[00:47:52.080 --> 00:47:53.080]   Yeah.
+[00:47:53.080 --> 00:47:55.080]   How do I test that?
+[00:47:55.080 --> 00:48:04.080]   I don't know how to evaluate that.
+[00:48:04.080 --> 00:48:08.080]   Support more than 100 observations.
+[00:48:08.080 --> 00:48:13.080]   I have a clear cut criteria to know when that requirement is met.
+[00:48:13.080 --> 00:48:16.080]   We can write a test for that, right?
+[00:48:16.080 --> 00:48:17.080]   Right.
+[00:48:17.080 --> 00:48:18.080]   Yeah.
+[00:48:18.080 --> 00:48:21.080]   We can include observations under five seconds.
+[00:48:21.080 --> 00:48:22.080]   Awesome.
+[00:48:22.080 --> 00:48:25.080]   I can test that we can do that.
+[00:48:25.080 --> 00:48:28.080]   I can't get that ability with high school for playing.
+[00:48:28.080 --> 00:48:32.080]   Not something I can write a test with, but something I can evaluate.
+[00:48:32.080 --> 00:48:33.080]   Yeah.
+[00:48:33.080 --> 00:48:35.080]   Shall be maintainable.
+[00:48:35.080 --> 00:48:38.080]   So this one here, you know, you're hard to test.
+[00:48:38.080 --> 00:48:43.080]   But this is one we could say we meet by saying we followed pip eight.
+[00:48:43.080 --> 00:48:47.080]   Um, pydock style and black formatting.
+[00:48:47.080 --> 00:48:48.080]   That's right.
+[00:48:48.080 --> 00:48:50.080]   The ones they're using in extra.
+[00:48:50.080 --> 00:48:53.080]   In high school, right?
+[00:48:53.080 --> 00:48:56.080]   So like if you've all the same documentation style that they did.
+[00:48:56.080 --> 00:48:59.080]   And that seems like it meets that requirement.
+[00:48:59.080 --> 00:49:02.080]   But that one, you're going to have to document.
+[00:49:02.080 --> 00:49:10.080]   To show meeting, right?
+[00:49:10.080 --> 00:49:17.080]   And like I would say, um, like in your twos, like the entire two one.
+[00:49:17.080 --> 00:49:21.080]   I would say is not MVP.
+[00:49:21.080 --> 00:49:24.080]   I would love for it to be done.
+[00:49:24.080 --> 00:49:26.080]   We just don't have time.
+[00:49:26.080 --> 00:49:33.080]   Yeah, right.
+[00:49:33.080 --> 00:49:38.080]   So to to sound that one looks like we can definitely knock that one off, right?
+[00:49:38.080 --> 00:49:42.080]   You can write tests that confirm we're using those attributes.
+[00:49:42.080 --> 00:49:44.080]   I would even say we could break that.
+[00:49:44.080 --> 00:49:51.080]   That requirement up right into three smaller ones visibility constraints, deadlines priority, right?
+[00:49:51.080 --> 00:49:55.080]   Those are all individual things we can meet.
+[00:49:55.080 --> 00:49:57.080]   Right.
+[00:49:57.080 --> 00:50:00.080]   And something that's Mack.
+[00:50:00.080 --> 00:50:01.080]   Oh, go ahead.
+[00:50:01.080 --> 00:50:05.080]   Yeah, I was going to say that I might not be able, because I don't know.
+[00:50:05.080 --> 00:50:09.080]   Astronomical part of it, but I might not be because of which I might not be able to test the.
+[00:50:09.080 --> 00:50:17.080]   I see a stop by file, but something that is very possible and can take just maybe five, ten minutes is.
+[00:50:17.080 --> 00:50:21.080]   When I'm I can, I could connect the.
+[00:50:21.080 --> 00:50:27.080]   SCH parser to astro plans, priority scheduler.
+[00:50:27.080 --> 00:50:30.080]   And we can see how that works out.
+[00:50:30.080 --> 00:50:32.080]   That is very possible.
+[00:50:32.080 --> 00:50:34.080]   It should actually generate a schedule.
+[00:50:34.080 --> 00:50:38.080]   In the CSP file, correct, I would not.
+[00:50:38.080 --> 00:50:41.080]   And the reason being is we know the SCH parsers broken.
+[00:50:41.080 --> 00:50:42.080]   Okay.
+[00:50:42.080 --> 00:50:44.080]   We know that, right?
+[00:50:44.080 --> 00:50:47.080]   We spent quite a bit of time showing that it doesn't work.
+[00:50:47.080 --> 00:50:48.080]   Right.
+[00:50:48.080 --> 00:50:52.080]   If the parser doesn't work, nothing beyond it will work, right?
+[00:50:52.080 --> 00:50:54.080]   It's already wrong.
+[00:50:54.080 --> 00:50:55.080]   Got it.
+[00:50:55.080 --> 00:50:59.080]   So I just, I would avoid.
+[00:50:59.080 --> 00:51:03.080]   Yeah, and I would, I mean, this is.
+[00:51:03.080 --> 00:51:06.080]   Because I tried to.
+[00:51:06.080 --> 00:51:11.080]   Play around with that schedule a little bit more later, so I'm not entirely.
+[00:51:11.080 --> 00:51:14.080]   Sure that the parser is.
+[00:51:14.080 --> 00:51:20.080]   Fully not functional, because the test SCH file when I was reading it.
+[00:51:20.080 --> 00:51:24.080]   I don't, I'm not 100% sure that.
+[00:51:24.080 --> 00:51:28.080]   The file is written correctly because.
+[00:51:28.080 --> 00:51:30.080]   Oh, I know it isn't.
+[00:51:30.080 --> 00:51:32.080]   Yeah, so it could just be the file itself.
+[00:51:32.080 --> 00:51:34.080]   The SCH file itself.
+[00:51:34.080 --> 00:51:36.080]   And not the parser.
+[00:51:36.080 --> 00:51:37.080]   Yeah.
+[00:51:37.080 --> 00:51:42.080]   And the other group wrote an example of where half the SCH files have user errors in them.
+[00:51:42.080 --> 00:51:44.080]   And that's why they don't work.
+[00:51:44.080 --> 00:51:46.080]   But a user typo is not the slew.
+[00:51:46.080 --> 00:51:48.080]   The problem you guys are solving, right?
+[00:51:48.080 --> 00:51:49.080]   Yep.
+[00:51:49.080 --> 00:51:53.080]   So if someone gives you a file that has a typo in it, well, it will give it back to the user.
+[00:51:53.080 --> 00:51:55.080]   That's a pretty easy fix.
+[00:51:55.080 --> 00:51:57.080]   Yep.
+[00:51:57.080 --> 00:52:02.080]   That's not what we want to do.
+[00:52:02.080 --> 00:52:08.080]   Also, in your requirements document here, you say earlier deadlines.
+[00:52:08.080 --> 00:52:12.080]   I don't know that that was ever a real requirement.
+[00:52:12.080 --> 00:52:16.080]   I want to see.
+[00:52:16.080 --> 00:52:21.080]   Section two, three.
+[00:52:21.080 --> 00:52:28.080]   And short iterations are these things that actually came out of your requirements meeting.
+[00:52:28.080 --> 00:52:31.080]   Or not.
+[00:52:31.080 --> 00:52:33.080]   Earlier deadlines, I'm not.
+[00:52:33.080 --> 00:52:34.080]   Sure.
+[00:52:34.080 --> 00:52:38.080]   Yeah, this.
+[00:52:38.080 --> 00:52:42.080]   We delegated this one to.
+[00:52:42.080 --> 00:52:44.080]   And that's fine.
+[00:52:44.080 --> 00:52:46.080]   Oh, I would definitely reach out to them.
+[00:52:46.080 --> 00:52:49.080]   Earlier deadlines means nothing to me.
+[00:52:49.080 --> 00:52:50.080]   Yeah.
+[00:52:50.080 --> 00:52:54.080]   And I know that experiments V2 follows the new formatting.
+[00:52:54.080 --> 00:52:58.080]   But it doesn't mean we throw away context.
+[00:52:58.080 --> 00:53:00.080]   Yeah, you're right.
+[00:53:00.080 --> 00:53:01.080]   Yeah.
+[00:53:01.080 --> 00:53:08.080]   So I'm intuiting this as earlier deadlines as in we need to take a photo of this star before next Wednesday.
+[00:53:08.080 --> 00:53:11.080]   So we should prioritize tonight.
+[00:53:11.080 --> 00:53:15.080]   But that's not the priority that we need to handle.
+[00:53:15.080 --> 00:53:16.080]   Yeah.
+[00:53:16.080 --> 00:53:17.080]   It's a nice priority.
+[00:53:17.080 --> 00:53:20.080]   I'm not entirely sure either what they meant by this.
+[00:53:20.080 --> 00:53:22.080]   I can ask them.
+[00:53:22.080 --> 00:53:26.080]   And let you know.
+[00:53:26.080 --> 00:53:32.080]   Yeah, and what I would say is just, right, you're going to be submitting the third version of this document for the final.
+[00:53:32.080 --> 00:53:33.080]   Yeah.
+[00:53:33.080 --> 00:53:34.080]   Just improved.
+[00:53:34.080 --> 00:53:39.080]   Yeah, I'll make sure you make sure everything is within context.
+[00:53:39.080 --> 00:53:54.080]   Yeah, and at the end here, things like demonstrate a 15% improvement or in section five page four over telescope utilization of the current method.
+[00:53:54.080 --> 00:54:00.080]   I can tell you right now you will not pass that.
+[00:54:00.080 --> 00:54:08.080]   Because in the current method, there are nights where they take a picture of one star of the entire night.
+[00:54:08.080 --> 00:54:12.080]   There is no way your scheduling algorithm will beat.
+[00:54:12.080 --> 00:54:17.080]   Taking a picture of one star all night because there's no transition time.
+[00:54:17.080 --> 00:54:19.080]   Yeah.
+[00:54:19.080 --> 00:54:21.080]   Right.
+[00:54:21.080 --> 00:54:28.080]   So like this requirement could never be met because of a very simple user case.
+[00:54:28.080 --> 00:54:30.080]   Yeah.
+[00:54:30.080 --> 00:54:33.080]   I'll make sure you stuff like this next.
+[00:54:33.080 --> 00:54:38.080]   You know, it's like, this is where everything we do should come from a requirement.
+[00:54:38.080 --> 00:54:40.080]   Right.
+[00:54:40.080 --> 00:54:45.080]   If a requirement can't be met, we should improve it, right?
+[00:54:45.080 --> 00:54:48.080]   Looking back at our notes to see what the true intent was.
+[00:54:48.080 --> 00:54:49.080]   Yeah.
+[00:54:49.080 --> 00:54:51.080]   Or reach out to refine better.
+[00:54:51.080 --> 00:55:02.080]   Yeah, this is why I was initially saying that even telling them to write the documentation is.
+[00:55:02.080 --> 00:55:04.080]   But this is a great start.
+[00:55:04.080 --> 00:55:05.080]   Yeah, it is.
+[00:55:05.080 --> 00:55:10.080]   But even in the meeting, we had the first meeting the stakeholders.
+[00:55:10.080 --> 00:55:16.080]   I was taking all the notes and they went to room with me, but they weren't really, you know, taking notes and stuff.
+[00:55:16.080 --> 00:55:22.080]   So it's really hard to delegate and then.
+[00:55:22.080 --> 00:55:25.080]   But you haven't told me that before.
+[00:55:25.080 --> 00:55:26.080]   Yeah.
+[00:55:26.080 --> 00:55:34.080]   Because I was trying to kind of get them on board still because I mean, they do come to meetings and.
+[00:55:34.080 --> 00:55:38.080]   They try to show that they want to do stuff, but.
+[00:55:38.080 --> 00:55:44.080]   So I was under the impression that, okay, maybe it's going to get better next week or so.
+[00:55:44.080 --> 00:55:46.080]   Yes, given it's week nine.
+[00:55:46.080 --> 00:55:47.080]   Yeah.
+[00:55:47.080 --> 00:55:51.080]   I would that a betting man would say no, but.
+[00:55:51.080 --> 00:55:56.080]   This is sort of stuff we need document so that we can give credit according.
+[00:55:56.080 --> 00:55:58.080]   Got it.
+[00:55:58.080 --> 00:56:00.080]   Yeah, like I would go through here.
+[00:56:00.080 --> 00:56:03.080]   I'm doing another graph, you know.
+[00:56:03.080 --> 00:56:06.080]   The main thing is we don't want to over requirement.
+[00:56:06.080 --> 00:56:07.080]   Don't want to under.
+[00:56:07.080 --> 00:56:11.080]   But like, where is the work we're currently doing coming from?
+[00:56:11.080 --> 00:56:16.080]   Well, I would say we're hitting requirement two, three.
+[00:56:16.080 --> 00:56:18.080]   Right.
+[00:56:18.080 --> 00:56:23.080]   We're doing a little bit of two four.
+[00:56:23.080 --> 00:56:24.080]   Great.
+[00:56:24.080 --> 00:56:28.080]   So like you've asked me a couple times of like what do we need to do?
+[00:56:28.080 --> 00:56:29.080]   Yeah.
+[00:56:29.080 --> 00:56:33.080]   The answer is we need to meet our requirements.
+[00:56:33.080 --> 00:56:39.080]   It's definitely the case that Astra plan makes it very easy to meet a lot of them.
+[00:56:39.080 --> 00:56:44.080]   It's your job just to show that connection.
+[00:56:44.080 --> 00:56:48.080]   Great.
+[00:56:48.080 --> 00:56:52.080]   The first one.
+[00:56:52.080 --> 00:56:54.080]   Right.
+[00:56:54.080 --> 00:56:55.080]   Yeah.
+[00:56:55.080 --> 00:57:00.080]   When we configure this schedule, we'll use concern.
+[00:57:00.080 --> 00:57:01.080]   Just tell us that.
+[00:57:01.080 --> 00:57:02.080]   You know what I mean?
+[00:57:02.080 --> 00:57:03.080]   Like that's.
+[00:57:03.080 --> 00:57:07.080]   Demonstrate that in your code that you've met requirement to do.
+[00:57:07.080 --> 00:57:13.080]   Right.
+[00:57:13.080 --> 00:57:17.080]   Okay.
+[00:57:17.080 --> 00:57:20.080]   Because they don't like it.
+[00:57:20.080 --> 00:57:22.080]   I don't think that's a rational choice.
+[00:57:22.080 --> 00:57:26.080]   No one's given me a reason why we can't use it yet.
+[00:57:26.080 --> 00:57:28.080]   This is they don't like it.
+[00:57:28.080 --> 00:57:29.080]   So what is our job?
+[00:57:29.080 --> 00:57:32.080]   It's our job to show them that it does work.
+[00:57:32.080 --> 00:57:39.080]   You think we also could have rewritten the whole thing, but that would have taken substantially more effort.
+[00:57:39.080 --> 00:57:46.080]   I think it would be a make sense to test the same schedule with their.
+[00:57:46.080 --> 00:57:48.080]   I mean, I was I had troubles with schedule.
+[00:57:48.080 --> 00:57:55.080]   So I'm not sure if I'll be able to do this, but would it make more sense to test the basic scheduler, which they trust right now, like, like it.
+[00:57:55.080 --> 00:57:57.080]   They seem to like that.
+[00:57:57.080 --> 00:57:58.080]   Okay.
+[00:57:58.080 --> 00:58:03.080]   The human has to modify almost every schedule.
+[00:58:03.080 --> 00:58:05.080]   Okay.
+[00:58:05.080 --> 00:58:08.080]   It generates schedule. I would not say generates a great schedule.
+[00:58:08.080 --> 00:58:16.080]   So what I would say is if we had more time, yes, you could run both systems concurrently and demonstrate that yours has an X percent improvement.
+[00:58:16.080 --> 00:58:18.080]   We don't have that time.
+[00:58:18.080 --> 00:58:19.080]   Okay.
+[00:58:19.080 --> 00:58:21.080]   So let's just get yours to be better.
+[00:58:21.080 --> 00:58:24.080]   We can worry about a direct comparison.
+[00:58:24.080 --> 00:58:25.080]   Right.
+[00:58:25.080 --> 00:58:28.080]   So that's all it really is.
+[00:58:28.080 --> 00:58:31.080]   The main thing is yours just needs to work.
+[00:58:31.080 --> 00:58:35.080]   So, like, if I give you a set of observation blocks.
+
+[00:00:00.000 --> 00:00:07.000]   Got it. Doesn't have to be a perfect schedule, just a schedule.
+[00:00:07.000 --> 00:00:12.000]   Okay, because if it's a good scheduler now, then it becomes a domain question.
+[00:00:12.000 --> 00:00:16.000]   Yeah, and we can always improve your schedule, right?
+[00:00:16.000 --> 00:00:19.000]   If you have a scheduler ready by 8 p.m. tonight and you send it to me.
+[00:00:19.000 --> 00:00:21.000]   I'll give you some more tests.
+[00:00:21.000 --> 00:00:26.000]   Right, some tests that yes, we can implement those tests, see if your scheduler is sufficient.
+[00:00:26.000 --> 00:00:30.000]   Well, if it isn't, well, then you can spend, you know, Thursday night improving it.
+[00:00:30.000 --> 00:00:34.000]   Well, repeat. Do it again on Friday, right? Yeah.
+[00:00:34.000 --> 00:00:37.000]   Six days from now, you might actually have a schedule that works pretty well.
+[00:00:37.000 --> 00:00:41.000]   It requires us to have a version that works today.
+[00:00:41.000 --> 00:00:43.000]   Yeah.
+[00:00:43.000 --> 00:00:45.000]   Got it.
+[00:00:45.000 --> 00:00:48.000]   Well, I will let you guys work.
+[00:00:48.000 --> 00:00:50.000]   Hang me once you have some stuff done.
+[00:00:50.000 --> 00:00:52.000]   Yeah, thank you so much. Thank you.
+[00:00:52.000 --> 00:00:53.000]   Have a good one.
+[00:00:53.000 --> 00:00:53.840]   Yup, bye-bye.
