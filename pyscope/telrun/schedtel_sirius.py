@@ -41,14 +41,14 @@ for priority, bandpass in enumerate(['B', 'G', 'R']):
         configuration={'filter': bandpass},
         constraints=[first_half_night]
     )
-    #blocks.append(b)
+    blocks.append(b)
 
     b = ObservingBlock.from_exposures(
         m13, priority, m13_exp, n, read_out,
         configuration={'filter': bandpass},
         constraints=[first_half_night]
     )
-    #blocks.append(b)
+    blocks.append(b)
 
     b = ObservingBlock.from_exposures(
         sirius, priority, sirius_exp, n, read_out,
