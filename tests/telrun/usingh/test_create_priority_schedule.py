@@ -286,17 +286,23 @@ class TestPriorityScheduler:
         assert Time(schedule.scheduled_blocks[-1].start_time.iso) >= constants['half_night_start'] and Time(schedule.scheduled_blocks[-1].end_time.iso) <= constants['half_night_end'], "Last block should be within the half night window"
 
     def test_transition_insertion(self):
-        """Test that correct transition blocks are inserted when necessary.
+        """
+        Test that correct transition blocks are inserted when necessary.
         
         Abstract Test:
-            Verify that transition blocks are inserted between observable targets
+            Verify that transition blocks are inserted between observation blocks
+            when targets have different configurations.
         
         Concrete Input:
-            - Two targets (Deneb and M13)
+            - Multiple targets (Deneb, M13, Vega, etc.)
             - 5-minute observation duration for each target
-            - No constraints
-            - Empty configuration (should default to empty dict per target)
-            """
+            - Different filter configurations for each target
+            - No additional constraints
+        
+        Expected Oracle:
+            - Schedule contains transition blocks between different targets
+            - Each observation block has the correct configuration for its target
+        """
         constants = get_test_constants()
         
         # Setup test-specific parameters
@@ -321,13 +327,34 @@ class TestPriorityScheduler:
             constraints=constraints,
             configuration=configuration,
         )
-        # TODO: Need to finish this later
+        
+        # Create a mapping from target name to its configuration
+        target_to_config = {targets[i].name: configuration[i] for i in range(len(targets))}
+        
+        # Check that each observation block has the correct configuration for its target
+        for block in schedule.scheduled_blocks:
+            if not isinstance(block, TransitionBlock):
+                target_name = block.target.name
+                expected_config = target_to_config[target_name]
+                assert block.configuration == expected_config, f"Observation block for {target_name} should have configuration {expected_config} but got {block.configuration}"
     
     def test_transition_repeat(self):
-        """Test “no transitions for repeated exposures same filter”
-Abstract Test: multiple exposures of same target+filter require no TransitionBlock.
-Concrete Input: one star, one filter, durations list >1.
-Expected: no TransitionBlock in schedule"""
+        """
+        Test that no transitions are needed for repeated exposures with the same filter.
+        
+        Abstract Test:
+            Verify that when scheduling multiple targets with the same filter configuration,
+            no transition blocks are inserted between observations.
+        
+        Concrete Input:
+            - Multiple targets (Deneb, M13, Vega, etc.)
+            - 5-minute observation duration for each target
+            - Same filter configuration ('B') for all targets
+            - No additional constraints
+        
+        Expected Oracle:
+            - Schedule contains no transition blocks
+        """
         constants = get_test_constants()
         
         # Setup test-specific parameters
@@ -341,7 +368,7 @@ Expected: no TransitionBlock in schedule"""
         constraints = []
         configuration = [{'filter': 'B'}, {'filter': 'B'}, {'filter': 'B'}, {'filter': 'B'}, {'filter': 'B'}, {'filter': 'B'}, {'filter': 'B'}, {'filter': 'B'}]
         
-        #TODO assert that no scheduled_blocks are TransitionBlocks
+        # Create schedule
         schedule, scheduler = create_priority_schedule(
             targets=targets,
             observer=constants['observer'],
@@ -351,6 +378,8 @@ Expected: no TransitionBlock in schedule"""
             constraints=constraints,
             configuration=configuration,
         )
+        
+        # Assert no transition blocks in schedule
         for block in schedule.scheduled_blocks:
             assert not isinstance(block, TransitionBlock), "Schedule should not contain transition blocks"
         
