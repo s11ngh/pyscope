@@ -12,7 +12,7 @@ from astroplan.scheduling import PriorityScheduler
 from typing import List, Dict, Union, Optional, Tuple, Any
 from astroplan.scheduling import Scheduler
 from astropy.coordinates import EarthLocation
-
+from pyscope.telrun.bbscheduler import BBScheduler
 def create_priority_schedule(
     targets: List[FixedTarget],
     observer: Observer,
@@ -163,7 +163,7 @@ def create_priority_schedule(
                                instrument_reconfig_times=instrument_reconfig_times)
     
     # Create the scheduler
-    scheduler = PriorityScheduler(constraints=constraints, 
+    scheduler = BBScheduler(constraints=constraints, 
                                  observer=observer,
                                  transitioner=transitioner,
                                  gap_time=gap_time,
