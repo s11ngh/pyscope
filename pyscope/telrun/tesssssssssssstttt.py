@@ -1,3 +1,14 @@
+'''
+
+THIS FILE IS JUST A TEST FILE TO TEACH GUK GI AND HAN JU ABOUT PYTHON, BASIC SKILLS, AND BASIC PYTHON
+
+'''
+
+
+
+#import
+#from MODULE import PERTICULAR FUNCTION as ALIAS
+
 from astropy import time as astrotime
 from astropy import units as u
 from astroplan import Observer
