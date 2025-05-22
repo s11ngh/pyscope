@@ -114,8 +114,7 @@ def create_priority_schedule(
     # Handle priorities
     if priorities is None:
         priorities = list(range(1, n_targets + 1))
-    elif len(priorities) != n_targets:
-        raise ValueError("Number of priorities must match number of targets")
+    
     priorities =[1] * n_targets
     # Handle durations
     if durations is None:
@@ -124,14 +123,12 @@ def create_priority_schedule(
         
         if not isinstance(num_exposures, list):
             num_exposures = [num_exposures] * n_targets
-        elif len(num_exposures) != n_targets:
-            raise ValueError("Number of exposures must match number of targets")
+        
         
         durations = [(exposure_time + read_out_time) * n_exp for n_exp in num_exposures]
     elif not isinstance(durations, list):
         durations = [durations] * n_targets
-    elif len(durations) != n_targets:
-        raise ValueError("Number of durations must match number of targets")
+    
     
     # Ensure all durations are Quantity objects
     for i, duration in enumerate(durations):
@@ -143,15 +140,13 @@ def create_priority_schedule(
         configuration = [{}] * n_targets
     elif not isinstance(configuration, list):
         configuration = [configuration] * n_targets
-    elif len(configuration) != n_targets:
-        raise ValueError("Number of configurations must match number of targets")
+    
     
     # Handle names
     if names is None:
         names = [target.name for target in targets]
-    elif len(names) != n_targets:
-        raise ValueError("Number of names must match number of targets")
     
+    print(names)
     # Create the observing blocks
     blocks = []
     for i in range(n_targets):
