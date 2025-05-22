@@ -10,8 +10,10 @@ deneb = FixedTarget.from_name('Deneb')
 m13 = FixedTarget.from_name('M13')
 sirius = FixedTarget.from_name('Sirius')  # New target
 
-noon_before = Time('2016-07-06 19:00')
-noon_after = Time('2016-07-07 19:00')
+#noon_before = Time('2016-07-06 19:00')
+#noon_after = Time('2016-07-07 19:00')
+noon_before = Time('2016-12-15 19:00')
+noon_after = Time('2016-12-16 19:00')
 
 global_constraints = [
     AirmassConstraint(max=3, boolean_constraint=False),
@@ -25,8 +27,11 @@ sirius_exp = 80 * u.second
 
 n = 16
 
-half_night_start = Time('2016-07-07 02:00')
-half_night_end = Time('2016-07-07 08:00')
+#half_night_start = Time('2016-07-07 02:00')
+#half_night_end = Time('2016-07-07 08:00')
+half_night_start = Time('2016-12-15 02:00')
+half_night_end = Time('2016-12-16 11:00')
+
 first_half_night = TimeConstraint(half_night_start, half_night_end)
 
 blocks = []
@@ -36,14 +41,14 @@ for priority, bandpass in enumerate(['B', 'G', 'R']):
         configuration={'filter': bandpass},
         constraints=[first_half_night]
     )
-    blocks.append(b)
+    #blocks.append(b)
 
     b = ObservingBlock.from_exposures(
         m13, priority, m13_exp, n, read_out,
         configuration={'filter': bandpass},
         constraints=[first_half_night]
     )
-    blocks.append(b)
+    #blocks.append(b)
 
     b = ObservingBlock.from_exposures(
         sirius, priority, sirius_exp, n, read_out,
