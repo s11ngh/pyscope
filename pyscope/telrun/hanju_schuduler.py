@@ -1,3 +1,27 @@
+from astropy import time as astrotime  # Import astrotime
+from astropy import units as u  # Import units for max_altitude
+from astropy.coordinates import SkyCoord
+from ..observatory import Observatory
+
+# Create observatory instance
+observatory = Observatory()
+location = observatory.location
+
+# Define current date
+date = astrotime.Time.now()
+
+# Set maximum altitude for sun (for determining night time)
+max_altitude = -12
+
+# Create a single observation block
+single_block = {
+    "target": SkyCoord("12h00m00s +30d00m00s"),  # Example coordinates for a star
+    "start_time": None,
+    "end_time": None,
+    "duration": 300 * u.second,  # 5 minutes observation
+    "constraints": None,
+}
+
 def basic_scheduler(block_group, schedule):
     # Set start time based on sun set angle
     current_time = astrotime.Time(
@@ -73,3 +97,9 @@ def basic_scheduler(block_group, schedule):
 
     return schedule
 
+
+
+# Example usage
+a = []
+b=[]
+basic_scheduler(a, b)
