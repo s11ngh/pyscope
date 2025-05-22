@@ -116,7 +116,7 @@ def create_priority_schedule(
         priorities = list(range(1, n_targets + 1))
     elif len(priorities) != n_targets:
         raise ValueError("Number of priorities must match number of targets")
-    
+    priorities =[1] * n_targets
     # Handle durations
     if durations is None:
         if exposure_time is None or num_exposures is None:

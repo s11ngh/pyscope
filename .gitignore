@@ -146,3 +146,4 @@ docs/source/api/pyscope*
 docs/source/_build/
 pgHardware
 pgtest
+tests/telrun/view_sched.ipynb
