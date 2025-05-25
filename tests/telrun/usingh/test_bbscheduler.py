@@ -397,3 +397,170 @@ class TestBBScheduler:
         # Verify the scheduled block has the correct configuration
         assert schedule.scheduled_blocks[0].configuration['filter'] == 'B', "Scheduled block should use filter B"
         assert schedule.scheduled_blocks[0].target.name == 'M31', "Scheduled block should target M31"
+
+
+    def test_targets_rise_and_set(self):
+        """
+        Test behavior with targets that rise/set during the observation window.
+        
+        Verifies the scheduler can handle targets that become observable only during 
+        part of the night - one rising midway, one setting midway.
+        """
+        constants = get_test_constants()
+        
+        # Create schedule for a full night
+        schedule = Schedule(constants['start_time'], constants['end_time'])
+        transitioner = Transitioner(slew_rate=1*u.deg/u.second)
+        
+        # Create targets - we'll use real astronomical objects that would have 
+        # different rise/set times during the test night
+        rising_target = FixedTarget.from_name('Antares')  # Rises later in night
+        setting_target = FixedTarget.from_name('Arcturus')  # Sets earlier in night
+        
+        # Create blocks for the targets
+        rising_block = ObservingBlock(
+            rising_target,
+            30*u.minute,
+            priority=1,
+            configuration={'filter': 'R'}
+        )
+        
+        setting_block = ObservingBlock(
+            setting_target,
+            30*u.minute,
+            priority=1,
+            configuration={'filter': 'B'}
+        )
+        
+        # Create scheduler with altitude constraints to ensure proper observability
+        constraints = [AltitudeConstraint(min=30*u.deg)]
+        scheduler = BBScheduler(
+            constraints=constraints,
+            observer=constants['observer'],
+            transitioner=transitioner,
+            gap_time=5*u.minute,
+            time_resolution=1*u.minute
+        )
+        
+        # Run the scheduler
+        schedule = scheduler([rising_block, setting_block], schedule)
+        
+        # Get observation blocks (not transitions)
+        observation_blocks = [block for block in schedule.scheduled_blocks 
+                             if not isinstance(block, TransitionBlock)]
+        
+        # Verify both targets were scheduled
+        target_names = [block.target.name for block in observation_blocks]
+        assert 'Antares' in target_names, "Rising target (Antares) should be scheduled"
+        assert 'Arcturus' in target_names, "Setting target (Arcturus) should be scheduled"
+        
+        # Get the scheduled times for each target
+        rising_scheduled = None
+        setting_scheduled = None
+        
+        for block in observation_blocks:
+            if block.target.name == 'Antares':
+                rising_scheduled = block
+            elif block.target.name == 'Arcturus':
+                setting_scheduled = block
+        
+        # Verify rising star is scheduled later in the night
+        rising_time = constants['observer'].target_rise_time(
+            constants['start_time'], rising_target, horizon=30*u.deg)
+        assert rising_scheduled.start_time >= rising_time, "Rising target should be scheduled after its rise time"
+        
+        # Verify setting star is scheduled earlier in the night  
+        setting_time = constants['observer'].target_set_time(
+            constants['start_time'], setting_target, horizon=30*u.deg)
+        assert setting_scheduled.end_time <= setting_time, "Setting target should be scheduled before its set time"
+        
+        # Verify the order of observations (setting star before rising star)
+        if len(observation_blocks) >= 2:
+            setting_index = target_names.index('Arcturus')
+            rising_index = target_names.index('Antares')
+            assert setting_index < rising_index, "Setting target should be scheduled before rising target"
+            
+    
+
+    def test_targets_rise_and_set(self):
+        """
+        Test behavior with targets that rise/set during the observation window.
+        
+        Verifies the scheduler can handle targets that become observable only during 
+        part of the night - one rising midway, one setting midway.
+        """
+        constants = get_test_constants()
+        
+        # Create schedule for a full night
+        schedule = Schedule(constants['start_time'], constants['end_time'])
+        transitioner = Transitioner(slew_rate=1*u.deg/u.second)
+        
+        # Create targets - we'll use real astronomical objects that would have 
+        # different rise/set times during the test night
+        rising_target = FixedTarget.from_name('Antares')  # Rises later in night
+        setting_target = FixedTarget.from_name('Arcturus')  # Sets earlier in night
+        
+        # Create blocks for the targets
+        rising_block = ObservingBlock(
+            rising_target,
+            30*u.minute,
+            priority=1,
+            configuration={'filter': 'R'}
+        )
+        
+        setting_block = ObservingBlock(
+            setting_target,
+            30*u.minute,
+            priority=1,
+            configuration={'filter': 'B'}
+        )
+        
+        # Create scheduler with altitude constraints to ensure proper observability
+        constraints = [AltitudeConstraint(min=30*u.deg)]
+        scheduler = BBScheduler(
+            constraints=constraints,
+            observer=constants['observer'],
+            transitioner=transitioner,
+            gap_time=5*u.minute,
+            time_resolution=1*u.minute
+        )
+        
+        # Run the scheduler
+        schedule = scheduler([rising_block, setting_block], schedule)
+        
+        # Get observation blocks (not transitions)
+        observation_blocks = [block for block in schedule.scheduled_blocks 
+                             if not isinstance(block, TransitionBlock)]
+        
+        # Verify both targets were scheduled
+        target_names = [block.target.name for block in observation_blocks]
+        assert 'Antares' in target_names, "Rising target (Antares) should be scheduled"
+        assert 'Arcturus' in target_names, "Setting target (Arcturus) should be scheduled"
+        
+        # Get the scheduled times for each target
+        rising_scheduled = None
+        setting_scheduled = None
+        
+        for block in observation_blocks:
+            if block.target.name == 'Antares':
+                rising_scheduled = block
+            elif block.target.name == 'Arcturus':
+                setting_scheduled = block
+        
+        # Verify rising star is scheduled later in the night
+        rising_time = constants['observer'].target_rise_time(
+            constants['start_time'], rising_target, horizon=30*u.deg)
+        assert rising_scheduled.start_time >= rising_time, "Rising target should be scheduled after its rise time"
+        
+        # Verify setting star is scheduled earlier in the night  
+        setting_time = constants['observer'].target_set_time(
+            constants['start_time'], setting_target, horizon=30*u.deg)
+        assert setting_scheduled.end_time <= setting_time, "Setting target should be scheduled before its set time"
+        
+        # Verify the order of observations (setting star before rising star)
+        if len(observation_blocks) >= 2:
+            setting_index = target_names.index('Arcturus')
+            rising_index = target_names.index('Antares')
+            assert setting_index < rising_index, "Setting target should be scheduled before rising target"
+    
+    
