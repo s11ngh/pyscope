@@ -5,7 +5,7 @@ from astropy import units as u
 from astroplan.constraints import AirmassConstraint, AtNightConstraint, TimeConstraint, AltitudeConstraint
 from astroplan.scheduling import TransitionBlock, Schedule, Transitioner
 from pyscope.telrun.bbscheduler import BBScheduler
-
+from astroplan.scheduling import PriorityScheduler
 
 
 # Constants for all tests
@@ -25,6 +25,60 @@ def get_test_constants():
     }
 
 class TestBBScheduler:
+
+
+    def test_bbscheduler_with_priority(self):
+        """Test that the BBScheduler can schedule blocks with priority."""
+        constants = get_test_constants()
+        
+        # Create targets and blocks
+        targets = [
+            FixedTarget.from_name('Deneb'),
+            FixedTarget.from_name('M13'),
+            FixedTarget.from_name('Vega')
+        ]
+        
+        configurations = [{'filter': 'B'}, {'filter': 'C'}, {'filter': 'R'}]
+        blocks = []
+        
+        # Create blocks for each target
+        for i, target in enumerate(targets):
+            block = ObservingBlock(
+                target, 
+                5*u.minute, 
+                priority=i+1,  # Different priorities
+                configuration=configurations[i],
+                constraints=None
+            )
+            blocks.append(block)
+        
+        # Create schedule and transitioner
+        schedule = Schedule(constants['start_time'], constants['end_time'])
+        transitioner = Transitioner(slew_rate=1*u.deg/u.second)
+        
+        scheduler_bbscheduler = BBScheduler(
+            constraints=[],
+            observer=constants['observer'],
+            transitioner=transitioner,
+            gap_time=5*u.minute,
+            time_resolution=1*u.minute
+        )
+
+        scheduler_priority = PriorityScheduler(
+            constraints=[],
+            observer=constants['observer'],
+            transitioner=transitioner,
+            gap_time=5*u.minute,
+            time_resolution=1*u.minute
+        )
+
+        # Schedule all blocks, not just one
+        schedule_bbscheduler = scheduler_bbscheduler(blocks, schedule)
+        schedule_priority = scheduler_priority(blocks, schedule)
+
+        # Verify both schedules are the same
+        assert schedule_bbscheduler == schedule_priority, "BBScheduler and PriorityScheduler should schedule the same blocks"
+    
     """Test suite for the BBScheduler class."""
     def test_single_target_no_transitions(self):
         """Test that a schedule with a single target has no transition blocks."""
