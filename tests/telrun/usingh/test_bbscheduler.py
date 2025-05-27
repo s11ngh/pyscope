@@ -1367,3 +1367,474 @@ class TestBBScheduler:
             assert end_alt >= 40*u.deg, f"{block.target.name} should end above 40° altitude"
             assert end_alt <= 70*u.deg, f"{block.target.name} should end below 70° altitude"
 
+    def test_large_scale_scheduling_100_targets(self):
+        """
+        Test scheduler performance with 100+ image requests.
+        
+        Addresses concern: "really slow at organizing those things together, 
+        especially when handling upwards of 100 image requests"
+        """
+        import time
+        constants = get_test_constants()
+        
+        # Create 100 diverse targets across the sky
+        target_names = ['Vega', 'Deneb', 'Altair', 'Spica', 'Arcturus', 'Capella', 
+                       'Rigel', 'Betelgeuse', 'Aldebaran', 'Pollux']
+        
+        blocks = []
+        for i in range(100):
+            target_name = target_names[i % len(target_names)]
+            target = FixedTarget.from_name(target_name)
+            
+            block = ObservingBlock(
+                target,
+                (5 + i % 10)*u.minute,  # Varying durations 5-14 minutes
+                priority=1,   # Priorities 1-5
+                configuration={'filter': ['B', 'V', 'R'][i % 3]}
+            )
+            blocks.append(block)
+        
+        schedule = Schedule(constants['start_time'], constants['end_time'])
+        transitioner = Transitioner(slew_rate=1*u.deg/u.second)
+        
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=constants['observer'],
+            transitioner=transitioner,
+            gap_time=2*u.minute,
+            time_resolution=1*u.minute
+        )
+        
+        # Measure scheduling time
+        start_time = time.time()
+        schedule = scheduler(blocks, schedule)
+        scheduling_time = time.time() - start_time
+        
+        # Performance assertions
+        assert scheduling_time < 30, f"Scheduling 100 blocks should take <30s, took {scheduling_time:.2f}s"
+        
+        # Verify scheduling efficiency
+        scheduled_blocks = [b for b in schedule.scheduled_blocks if not isinstance(b, TransitionBlock)]
+        scheduling_rate = len(scheduled_blocks) / len(blocks)
+        assert scheduling_rate > 0.7, f"Should schedule >70% of blocks, scheduled {scheduling_rate:.1%}"
+
+    def test_scheduling_efficiency_no_blank_time(self):
+        """
+        Test that scheduler minimizes blank time throughout the night.
+        
+        Addresses concern: "computational inefficiency and inefficiency of having 
+        blank time throughout the night"
+        """
+        constants = get_test_constants()
+        
+        # Create targets that should fill most of the night
+        targets = [FixedTarget.from_name(name) for name in 
+                  ['Vega', 'Deneb', 'Altair', 'Spica', 'Arcturus', 'Capella']]
+        
+        blocks = []
+        for i, target in enumerate(targets):
+            block = ObservingBlock(
+                target,
+                45*u.minute,  # Substantial observations
+                priority=1,
+                configuration={'filter': 'R'}
+            )
+            blocks.append(block)
+        
+        # Use 6-hour night window
+        night_start = Time('2025-07-07 01:00')
+        night_end = Time('2025-07-07 07:00')
+        schedule = Schedule(night_start, night_end)
+        
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=25*u.deg)],
+            observer=constants['observer'],
+            transitioner=Transitioner(slew_rate=1*u.deg/u.second),
+            gap_time=3*u.minute,
+            time_resolution=1*u.minute
+        )
+        
+        schedule = scheduler(blocks, schedule)
+        
+        # Calculate time utilization
+        total_window = (night_end - night_start).to(u.minute).value
+        
+        observation_blocks = [b for b in schedule.scheduled_blocks if not isinstance(b, TransitionBlock)]
+        total_observation_time = sum([(b.end_time - b.start_time).to(u.minute).value 
+                                     for b in observation_blocks])
+        
+        utilization = total_observation_time / total_window
+        assert utilization > 0.6, f"Night utilization should be >60%, got {utilization:.1%}"
+
+    def test_all_schedulable_targets_get_scheduled(self):
+        """
+        Test that scheduler doesn't miss schedulable observations.
+        
+        Addresses concern: "would actually not schedule all the images that we 
+        requested, even if there was extra time in the night"
+        """
+        constants = get_test_constants()
+        
+        # Create targets that are definitely observable during the window
+        well_placed_targets = ['Vega', 'Deneb', 'Altair']  # Summer targets for July
+        
+        blocks = []
+        for i, target_name in enumerate(well_placed_targets):
+            target = FixedTarget.from_name(target_name)
+            
+            # Short observations that should definitely fit
+            block = ObservingBlock(
+                target,
+                15*u.minute,
+                priority=1,
+                configuration={'filter': 'R'}
+            )
+            blocks.append(block)
+        
+        # Use generous constraints to ensure observability
+        schedule = Schedule(constants['start_time'], constants['end_time'])
+        
+        scheduler = BBScheduler(
+            constraints=[
+                AltitudeConstraint(min=15*u.deg),  # Very permissive
+                AtNightConstraint.twilight_civil()
+            ],
+            observer=constants['observer'],
+            transitioner=Transitioner(slew_rate=2*u.deg/u.second),
+            gap_time=2*u.minute,
+            time_resolution=1*u.minute
+        )
+        
+        schedule = scheduler(blocks, schedule)
+        
+        # Verify all targets were scheduled
+        scheduled_blocks = [b for b in schedule.scheduled_blocks if not isinstance(b, TransitionBlock)]
+        scheduled_targets = [b.target.name for b in scheduled_blocks]
+        
+        for target_name in well_placed_targets:
+            assert target_name in scheduled_targets, f"{target_name} should have been scheduled but wasn't"
+        
+        assert len(scheduled_blocks) == len(blocks), "All schedulable blocks should be scheduled"
+
+
+class TestBBSchedulerUnifiedInterface:
+    """Test suite for the unified interface methods of BBScheduler."""
+
+    def test_missing_blocks_some_unscheduled(self, observer, time_constants, standard_transitioner):
+        """Test get_missing_blocks() when some blocks cannot be scheduled due to constraints."""
+        # Create targets with varying observability
+        targets = [
+            FixedTarget.from_name('Vega'),    # Should be observable
+            FixedTarget.from_name('Deneb'),   # Should be observable
+            FixedTarget.from_name('Sirius'),  # May not be observable in summer
+        ]
+        
+        blocks = []
+        for i, target in enumerate(targets):
+            # Add very restrictive constraints to make some blocks unschedulable
+            constraints = [AltitudeConstraint(min=85*u.deg)] if i == 2 else []
+            block = ObservingBlock(
+                target,
+                30*u.minute,
+                priority=i+1,
+                configuration={'filter': f'filter_{i}'},
+                constraints=constraints
+            )
+            blocks.append(block)
+        
+        # Create schedule and scheduler
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler = BBScheduler(
+            constraints=[],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Test missing blocks
+        missing_blocks = scheduler.get_missing_blocks()
+        scheduled_obs_blocks = scheduler.get_observing_blocks()
+        
+        # Verify that missing + scheduled = original
+        assert len(missing_blocks) + len(scheduled_obs_blocks) == len(blocks), \
+            "Missing blocks + scheduled blocks should equal original blocks"
+        
+        # Verify missing blocks are actually missing from schedule
+        scheduled_target_names = [block.target.name for block in scheduled_obs_blocks]
+        for missing_block in missing_blocks:
+            assert missing_block.target.name not in scheduled_target_names, \
+                f"Missing block {missing_block.target.name} should not be in scheduled blocks"
+
+    def test_missing_blocks_with_time_conflicts(self, observer, time_constants, standard_transitioner):
+        """Test get_missing_blocks() when blocks have conflicting time requirements."""
+        # Create blocks with overlapping time constraints
+        target = FixedTarget.from_name('Vega')
+        
+        # Create time constraints that overlap but can't all be satisfied
+        start_time = time_constants['start_time']
+        constraint1 = TimeConstraint(start_time, start_time + 2*u.hour)
+        constraint2 = TimeConstraint(start_time + 1*u.hour, start_time + 3*u.hour)
+        constraint3 = TimeConstraint(start_time + 2*u.hour, start_time + 4*u.hour)
+        
+        blocks = [
+            ObservingBlock(target, 90*u.minute, priority=1, 
+                          configuration={'filter': 'B'}, constraints=[constraint1]),
+            ObservingBlock(target, 90*u.minute, priority=2, 
+                          configuration={'filter': 'V'}, constraints=[constraint2]),
+            ObservingBlock(target, 90*u.minute, priority=3, 
+                          configuration={'filter': 'R'}, constraints=[constraint3])
+        ]
+        
+        # Create schedule and scheduler
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler = BBScheduler(
+            constraints=[],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Test missing blocks
+        missing_blocks = scheduler.get_missing_blocks()
+        scheduled_obs_blocks = scheduler.get_observing_blocks()
+        
+        # Should have some conflicts due to overlapping time requirements
+        assert len(missing_blocks) > 0, "Should have some missing blocks due to time conflicts"
+        assert len(missing_blocks) + len(scheduled_obs_blocks) == len(blocks), \
+            "Missing blocks + scheduled blocks should equal original blocks"
+
+    def test_missing_blocks_all_scheduled(self, observer, time_constants, standard_transitioner):
+        """Test get_missing_blocks() when all blocks can be scheduled (should return empty list)."""
+        # Create easily schedulable blocks
+        targets = [
+            FixedTarget.from_name('Vega'),
+            FixedTarget.from_name('Deneb')
+        ]
+        
+        blocks = []
+        for i, target in enumerate(targets):
+            block = ObservingBlock(
+                target,
+                15*u.minute,  # Short duration to ensure they fit
+                priority=i+1,
+                configuration={'filter': f'filter_{i}'}
+            )
+            blocks.append(block)
+        
+        # Create schedule and scheduler with generous time window
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],  # Reasonable constraint
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Test missing blocks
+        missing_blocks = scheduler.get_missing_blocks()
+        scheduled_obs_blocks = scheduler.get_observing_blocks()
+        
+        # All blocks should be scheduled
+        assert len(missing_blocks) == 0, "Should have no missing blocks when all can be scheduled"
+        assert len(scheduled_obs_blocks) == len(blocks), "All blocks should be scheduled"
+
+    def test_scheduled_blocks_consistency_case1(self, observer, time_constants, standard_transitioner):
+        """Test get_scheduled_blocks() returns same result as schedule.scheduled_blocks - Case 1."""
+        targets = [
+            FixedTarget.from_name('Vega'),
+            FixedTarget.from_name('Deneb'),
+            FixedTarget.from_name('Altair')
+        ]
+        
+        blocks = []
+        for i, target in enumerate(targets):
+            block = ObservingBlock(
+                target,
+                20*u.minute,
+                priority=i+1,
+                configuration={'filter': f'filter_{i}'}
+            )
+            blocks.append(block)
+        
+        # Create schedule and scheduler
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler = BBScheduler(
+            constraints=[],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Test scheduled blocks consistency
+        scheduler_scheduled = scheduler.get_scheduled_blocks()
+        schedule_scheduled = result_schedule.scheduled_blocks
+        
+        assert scheduler_scheduled == schedule_scheduled, \
+            "Scheduler.get_scheduled_blocks() should match schedule.scheduled_blocks"
+
+    def test_scheduled_blocks_consistency_case2(self, observer, time_constants, standard_transitioner):
+        """Test get_scheduled_blocks() returns same result as schedule.scheduled_blocks - Case 2."""
+        targets = [
+            FixedTarget.from_name('Polaris'),
+            FixedTarget.from_name('Capella')
+        ]
+        
+        blocks = []
+        for i, target in enumerate(targets):
+            block = ObservingBlock(
+                target,
+                45*u.minute,  # Longer duration
+                priority=i+1,
+                configuration={'filter': 'R', 'exposure': 300}
+            )
+            blocks.append(block)
+        
+        # Create schedule and scheduler
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=30*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Test scheduled blocks consistency
+        scheduler_scheduled = scheduler.get_scheduled_blocks()
+        schedule_scheduled = result_schedule.scheduled_blocks
+        
+        assert scheduler_scheduled == schedule_scheduled, \
+            "Scheduler.get_scheduled_blocks() should match schedule.scheduled_blocks"
+
+    def test_observing_blocks_consistency_case1(self, observer, time_constants, standard_transitioner):
+        """Test get_observing_blocks() returns same result as schedule.observing_blocks - Case 1."""
+        targets = [
+            FixedTarget.from_name('Vega'),
+            FixedTarget.from_name('Arcturus')
+        ]
+        
+        blocks = []
+        for i, target in enumerate(targets):
+            block = ObservingBlock(
+                target,
+                25*u.minute,
+                priority=i+1,
+                configuration={'filter': 'B', 'binning': '2x2'}
+            )
+            blocks.append(block)
+        
+        # Create schedule and scheduler
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler = BBScheduler(
+            constraints=[],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Test observing blocks consistency
+        scheduler_observing = scheduler.get_observing_blocks()
+        schedule_observing = result_schedule.observing_blocks
+        
+        assert scheduler_observing == schedule_observing, \
+            "Scheduler.get_observing_blocks() should match schedule.observing_blocks"
+
+    def test_observing_blocks_consistency_case2(self, observer, time_constants, standard_transitioner):
+        """Test get_observing_blocks() returns same result as schedule.observing_blocks - Case 2."""
+        targets = [
+            FixedTarget.from_name('Spica'),
+            FixedTarget.from_name('Regulus'),
+            FixedTarget.from_name('Antares')
+        ]
+        
+        blocks = []
+        for i, target in enumerate(targets):
+            block = ObservingBlock(
+                target,
+                10*u.minute,  # Short observations
+                priority=i+1,
+                configuration={'filter': 'V'}
+            )
+            blocks.append(block)
+        
+        # Create schedule and scheduler
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=25*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Test observing blocks consistency
+        scheduler_observing = scheduler.get_observing_blocks()
+        schedule_observing = result_schedule.observing_blocks
+        
+        assert scheduler_observing == schedule_observing, \
+            "Scheduler.get_observing_blocks() should match schedule.observing_blocks"
+
+    def test_get_scheduling_summary(self, observer, time_constants, standard_transitioner):
+        """Test get_scheduling_summary() provides correct statistics."""
+        targets = [
+            FixedTarget.from_name('Vega'),
+            FixedTarget.from_name('Deneb'),
+            FixedTarget.from_name('Sirius')  # May not be schedulable
+        ]
+        
+        blocks = []
+        for i, target in enumerate(targets):
+            # Make the last block hard to schedule
+            constraints = [AltitudeConstraint(min=85*u.deg)] if i == 2 else []
+            block = ObservingBlock(
+                target,
+                30*u.minute,
+                priority=i+1,
+                configuration={'filter': f'filter_{i}'},
+                constraints=constraints
+            )
+            blocks.append(block)
+        
+        # Create schedule and scheduler
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler = BBScheduler(
+            constraints=[],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Test scheduling summary
+        summary = scheduler.get_scheduling_summary()
+        
+        # Verify summary structure
+        required_keys = ['total_blocks', 'scheduled_blocks', 'missing_blocks', 'scheduling_efficiency']
+        for key in required_keys:
+            assert key in summary, f"Summary should contain key: {key}"
+        
+        # Verify summary values
+        assert summary['total_blocks'] == len(blocks), "Total blocks should match input"
+        assert summary['scheduled_blocks'] == len(scheduler.get_observing_blocks()), \
+            "Scheduled blocks should match get_observing_blocks()"
+        assert summary['missing_blocks'] == len(scheduler.get_missing_blocks()), \
+            "Missing blocks should match get_missing_blocks()"
+        
+        # Verify efficiency calculation
+        expected_efficiency = (summary['scheduled_blocks'] / summary['total_blocks']) * 100
+        assert abs(summary['scheduling_efficiency'] - expected_efficiency) < 0.01, \
+            "Scheduling efficiency should be correctly calculated"
+
