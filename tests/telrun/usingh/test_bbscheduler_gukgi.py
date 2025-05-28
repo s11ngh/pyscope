@@ -82,7 +82,7 @@ class TestBBSchedulerGukgi:
         # - Schedule blocks for each observer location
         # - Compare scheduling results between locations
         # - Verify that target visibility differences affect scheduling
-        pass
+        
 
     def test_seasonal_target_visibility(self, observer, standard_transitioner):
         """
@@ -98,8 +98,54 @@ class TestBBSchedulerGukgi:
         # - Schedule blocks for both time periods
         # - Compare which targets are schedulable in each season
         # - Verify seasonal visibility effects on missing blocks
-        pass
+        targets = [
+            FixedTarget.from_name('Vega'),
+            FixedTarget.from_name('Altair'),
+            FixedTarget.from_name('Deneb')
+        ]
 
+        blocks = []
+        for i, target in enumerate(targets):
+            block = ObservingBlock(
+                target,
+                20 * u.minute,
+                priority=1,
+                configuration={'filter': f'F{i}'}
+            )
+            blocks.append(block)
+
+        # Fast transitioner setup
+        fast_transitioner = Transitioner(slew_rate=5 * u.deg / u.second)
+        schedule_fast = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler_fast = BBScheduler(
+            constraints=[AltitudeConstraint(min=20 * u.deg)],
+            observer=observer,
+            transitioner=fast_transitioner,
+            gap_time=1 * u.minute,
+            time_resolution=1 * u.minute
+        )
+        schedule_fast = scheduler_fast(blocks, schedule_fast)
+
+        # Slow transitioner setup
+        slow_transitioner = Transitioner(slew_rate=0.2 * u.deg / u.second)
+        schedule_slow = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler_slow = BBScheduler(
+            constraints=[AltitudeConstraint(min=20 * u.deg)],
+            observer=observer,
+            transitioner=slow_transitioner,
+            gap_time=5 * u.minute,
+            time_resolution=1 * u.minute
+        )
+        schedule_slow = scheduler_slow(blocks, schedule_slow)
+
+        # Get scheduled blocks only (excluding transitions)
+        fast_blocks = [b for b in schedule_fast.scheduled_blocks if not isinstance(b, TransitionBlock)]
+        slow_blocks = [b for b in schedule_slow.scheduled_blocks if not isinstance(b, TransitionBlock)]
+
+        # Check that fast scheduler results in more scheduled blocks or equal
+        assert len(fast_blocks) >= len(slow_blocks), \
+            "Fast transitioner should allow at least as many scheduled blocks as slow transitioner"
+        
     def test_concurrent_scheduling_consistency(self, observer, time_constants, standard_transitioner):
         """
         Test that multiple scheduler instances produce consistent results.
@@ -114,4 +160,54 @@ class TestBBSchedulerGukgi:
         # - Compare all scheduling results (scheduled, missing, summary)
         # - Verify that results are identical across all instances
         # - Test with different random seeds if applicable
-        pass 
+
+        # Setup
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+
+        # Very short duration block
+        short_block = ObservingBlock(
+            FixedTarget.from_name('Vega'),
+            10 * u.second,
+            priority=1,
+            configuration={'filter': 'B'}
+        )
+
+        # Very long duration block (almost entire night)
+        long_duration = (time_constants['end_time'] - time_constants['start_time']) - 10 * u.minute
+        long_block = ObservingBlock(
+            FixedTarget.from_name('Altair'),
+            long_duration,
+            priority=1,
+            configuration={'filter': 'R'}
+        )
+
+        # Block that exactly fits a 30-minute slot
+        exact_block = ObservingBlock(
+            FixedTarget.from_name('Deneb'),
+            30 * u.minute,
+            priority=1,
+            configuration={'filter': 'V'}
+        )
+
+        blocks = [short_block, long_block, exact_block]
+
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20 * u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner,
+            gap_time=2 * u.minute,
+            time_resolution=10 * u.second  # high precision
+        )
+
+        result_schedule = scheduler(blocks, schedule)
+        scheduled_blocks = [b for b in result_schedule.scheduled_blocks if not isinstance(b, TransitionBlock)]
+
+        # Check durations
+        for block in scheduled_blocks:
+            duration = block.end_time - block.start_time
+            if block.target.name == 'Vega':
+                assert abs(duration.to(u.second).value - 10) < 1, "Short block duration should be ~10 seconds"
+            elif block.target.name == 'Altair':
+                assert abs(duration.to(u.minute).value - long_duration.to(u.minute).value) < 1, "Long block duration should be ~all night minus 10 min"
+            elif block.target.name == 'Deneb':
+                assert abs(duration.to(u.minute).value - 30) < 1, "Exact block duration should be 30 minutes"
