@@ -50,7 +50,40 @@ class TestBBSchedulerHanju:
         # - Call with second set of blocks  
         # - Verify get_original_blocks() returns second set (not combined)
         # - Verify get_missing_blocks() only considers current call
-        pass
+        
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=25*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # First set of blocks
+        first_target = FixedTarget.from_name('Vega')
+        first_blocks = [
+            ObservingBlock(first_target, 30*u.minute, priority=1, 
+                          configuration={'filter': 'B'})
+        ]
+        
+        # Schedule first set
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler(first_blocks, schedule)
+        
+        # Verify first state
+        assert scheduler.get_original_blocks() == first_blocks
+        
+        # Second set of blocks
+        second_target = FixedTarget.from_name('Deneb')
+        second_blocks = [
+            ObservingBlock(second_target, 30*u.minute, priority=1,
+                          configuration={'filter': 'R'})
+        ]
+        
+        # Schedule second set
+        scheduler(second_blocks, schedule)
+        
+        # Verify state updated to second set
+        assert scheduler.get_original_blocks() == second_blocks
+        assert len(scheduler.get_missing_blocks()) <= len(second_blocks)
 
     def test_empty_block_list_handling(self, observer, time_constants, standard_transitioner):
         """
@@ -67,7 +100,29 @@ class TestBBSchedulerHanju:
         # - Verify get_scheduled_blocks() returns empty list
         # - Verify get_missing_blocks() returns empty list
         # - Verify get_scheduling_summary() returns appropriate zero values
-        pass
+        
+        scheduler = BBScheduler(
+            constraints=[],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Schedule empty block list
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler([], schedule)
+        
+        # Verify all getter methods return empty results
+        assert len(scheduler.get_original_blocks()) == 0
+        assert len(scheduler.get_observing_blocks()) == 0
+        assert len(scheduler.get_scheduled_blocks()) == 0
+        assert len(scheduler.get_missing_blocks()) == 0
+        
+        # Verify summary shows zero values
+        summary = scheduler.get_scheduling_summary()
+        assert summary['total_blocks'] == 0
+        assert summary['scheduled_blocks'] == 0
+        assert summary['missing_blocks'] == 0
+        assert summary['scheduling_efficiency'] == 0
 
     def test_scheduler_with_none_schedule(self, observer, time_constants, standard_transitioner):
         """
@@ -82,7 +137,23 @@ class TestBBSchedulerHanju:
         # - Verify get_scheduled_blocks() returns empty list
         # - Verify get_missing_blocks() returns empty list
         # - Verify get_scheduling_summary() handles None state gracefully
-        pass
+        
+        scheduler = BBScheduler(
+            constraints=[],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Test getter methods without scheduling anything
+        assert len(scheduler.get_observing_blocks()) == 0
+        assert len(scheduler.get_scheduled_blocks()) == 0
+        assert len(scheduler.get_missing_blocks()) == 0
+        
+        summary = scheduler.get_scheduling_summary()
+        assert summary['total_blocks'] == 0
+        assert summary['scheduled_blocks'] == 0
+        assert summary['missing_blocks'] == 0
+        assert summary['scheduling_efficiency'] == 0
 
     def test_duplicate_target_different_configs(self, observer, time_constants, standard_transitioner):
         """
@@ -98,7 +169,43 @@ class TestBBSchedulerHanju:
         # - Verify all blocks are scheduled (none missing)
         # - Verify transition blocks are created between different configurations
         # - Verify each scheduled block maintains its original configuration
-        pass
+        
+        target = FixedTarget.from_name('Vega')
+        configs = [
+            {'filter': 'B', 'exposure': 60},
+            {'filter': 'V', 'exposure': 45},
+            {'filter': 'R', 'exposure': 30}
+        ]
+        
+        blocks = []
+        for i, config in enumerate(configs):
+            block = ObservingBlock(
+                target,
+                20*u.minute,
+                priority=1,
+                configuration=config
+            )
+            blocks.append(block)
+        
+        # Create schedule and scheduler
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Verify all blocks were scheduled
+        scheduled_blocks = [b for b in scheduler.get_scheduled_blocks() 
+                           if not isinstance(b, TransitionBlock)]
+        assert len(scheduled_blocks) == len(blocks)
+        
+        # Verify configurations are preserved
+        scheduled_configs = [block.configuration for block in scheduled_blocks]
+        assert all(config in configs for config in scheduled_configs)
 
     def test_scheduler_memory_efficiency(self, observer, time_constants, standard_transitioner):
         """
@@ -114,4 +221,47 @@ class TestBBSchedulerHanju:
         # - Verify that get_original_blocks() returns copies, not references
         # - Verify that internal state is properly cleaned between calls
         # - Check that memory usage doesn't grow excessively
-        pass 
+        
+        import gc
+        import sys
+        
+        # Create 50 blocks
+        target = FixedTarget.from_name('Vega')
+        blocks = []
+        for i in range(50):
+            block = ObservingBlock(
+                target,
+                10*u.minute,
+                priority=1,
+                configuration={'filter': ['B', 'V', 'R'][i % 3]}
+            )
+            blocks.append(block)
+        
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Record initial memory state
+        gc.collect()
+        initial_objects = len(gc.get_objects())
+        
+        # Schedule multiple times
+        for _ in range(5):
+            schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+            scheduler(blocks, schedule)
+            
+            # Verify get_original_blocks returns new list
+            retrieved_blocks = scheduler.get_original_blocks()
+            assert retrieved_blocks is not blocks
+            
+            # Verify state isolation
+            assert len(scheduler.get_original_blocks()) == len(blocks)
+        
+        # Check final memory state
+        gc.collect()
+        final_objects = len(gc.get_objects())
+        
+        # Allow for some overhead but shouldn't grow significantly
+        assert final_objects < initial_objects * 1.5

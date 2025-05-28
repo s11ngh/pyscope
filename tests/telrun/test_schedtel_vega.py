@@ -4,11 +4,11 @@ from astropy import units as u
 from astroplan import Observer, FixedTarget
 from pyscope.telrun.schedtel_vega import (
     setup_observer,
-    setup_target,
+    setup_targets,  # setup_target을 setup_targets로 변경
     setup_time_constraints,
     create_blocks,
     create_scheduler,
-    schedule_vega
+    schedule_stars  # schedule_vega를 schedule_stars로 변경
 )
 from astropy.table import Table
 
@@ -20,10 +20,11 @@ def test_setup_observer():
     assert observer.name == 'apo'
 
 def test_setup_target():
-    """Test target creation"""
-    target = setup_target()
-    assert isinstance(target, FixedTarget)
-    assert target.name == 'Vega'
+    """Test targets creation"""
+    targets = setup_targets()  # Changed from setup_target to setup_targets
+    assert isinstance(targets, list)
+    assert all(isinstance(target, FixedTarget) for target in targets)
+    assert 'Vega' in [target.name for target in targets]
 
 def test_time_constraints():
     """Test time constraints are properly set"""
@@ -51,7 +52,7 @@ def test_block_creation():
 
 def test_full_schedule():
     """Test full scheduling process"""
-    scheduled_blocks = schedule_vega()
+    scheduled_blocks = schedule_stars()  # Changed from schedule_vega to schedule_stars
     
     if scheduled_blocks is not None:
         # Verify we got a list of blocks
