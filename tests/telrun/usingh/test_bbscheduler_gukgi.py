@@ -125,7 +125,10 @@ class TestBBSchedulerGukgi:
         )
 
         # Very long duration block (almost entire night)
-        long_duration = (time_constants['end_time'] - time_constants['start_time']) - 10 * u.minute
+        time_diff = (time_constants['end_time'] - time_constants['start_time']).to(u.hour)
+        # Convert both durations to the same unit before subtraction
+        short_duration = 10 * u.minute
+        long_duration = time_diff - short_duration.to(u.hour)
         long_block = ObservingBlock(
             FixedTarget.from_name('Altair'),
             long_duration,
