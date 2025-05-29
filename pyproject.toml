@@ -1,12 +1,10 @@
 [build-system]
-requires = ["setuptools>=42.0", "wheel", "numpy>=1.26"]
+requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
-addopts = [
-    "--import-mode=importlib",
-    "--cov",
-    "--cov-report=xml"
+pythonpath = [
+    "."
 ]
 
 [tool.black]

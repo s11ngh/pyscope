@@ -1,10 +1,14 @@
-from astropy import time as astrotime  # Import astrotime
-from astropy import units as u  # Import units for max_altitude
-from astropy.coordinates import SkyCoord
-from ..observatory import Observatory
+# -*- coding: utf-8 -*-
+from astroplan import Observer, FixedTarget
+from astropy.time import Time
+from astroplan.constraints import AirmassConstraint, AtNightConstraint, TimeConstraint
+from astroplan import ObservingBlock
+from astroplan.scheduling import Transitioner, PriorityScheduler, Schedule
+from astropy import units as u
+import astrotime
 
 # Create observatory instance
-observatory = Observatory()
+observatory = Observer.at_site("apo")  # Example: Apache Point Observatory
 location = observatory.location
 
 # Define current date
