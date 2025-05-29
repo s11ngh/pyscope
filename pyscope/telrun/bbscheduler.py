@@ -136,17 +136,45 @@ class BBScheduler(PriorityScheduler):
             if not isinstance(block, TransitionBlock)
         ]
         
-        # Find missing blocks by comparing original blocks with scheduled blocks
-        # We'll compare by target name and configuration to identify matches
+        # Use a more robust approach: if the number of scheduled blocks equals
+        # the number of original blocks, then no blocks are missing
+        if len(scheduled_obs_blocks) == len(self._original_blocks):
+            return []
+        
+        # For cases where not all blocks were scheduled, we need to do detailed matching
+        # Create a list of scheduled block signatures for comparison
+        scheduled_signatures = []
+        for block in scheduled_obs_blocks:
+            signature = {
+                'target_name': block.target.name,
+                'duration_seconds': block.duration.to('second').value,
+                'priority': getattr(block, 'priority', None),
+                'configuration': str(block.configuration)  # Convert to string for comparison
+            }
+            scheduled_signatures.append(signature)
+        
+        # Find missing blocks by checking if each original block has a match
         missing = []
         for original_block in self._original_blocks:
+            original_signature = {
+                'target_name': original_block.target.name,
+                'duration_seconds': original_block.duration.to('second').value,
+                'priority': getattr(original_block, 'priority', None),
+                'configuration': str(original_block.configuration)
+            }
+            
+            # Look for a matching scheduled block
             found = False
-            for scheduled_block in scheduled_obs_blocks:
-                if (original_block.target.name == scheduled_block.target.name and
-                    original_block.configuration == scheduled_block.configuration and
-                    abs((original_block.duration - scheduled_block.duration).to('second').value) < 1):
+            for i, scheduled_sig in enumerate(scheduled_signatures):
+                if (scheduled_sig['target_name'] == original_signature['target_name'] and
+                    abs(scheduled_sig['duration_seconds'] - original_signature['duration_seconds']) < 1.0 and
+                    scheduled_sig['priority'] == original_signature['priority'] and
+                    scheduled_sig['configuration'] == original_signature['configuration']):
+                    # Mark this scheduled block as used (remove it to handle duplicates correctly)
+                    scheduled_signatures.pop(i)
                     found = True
                     break
+            
             if not found:
                 missing.append(original_block)
         
@@ -179,4 +207,4 @@ class BBScheduler(PriorityScheduler):
         }
     
     
-
+    
