@@ -6,6 +6,7 @@ from astroplan.constraints import AirmassConstraint, AtNightConstraint, TimeCons
 from astroplan.scheduling import TransitionBlock, Schedule, Transitioner
 from pyscope.telrun.bbscheduler import BBScheduler
 from astroplan.scheduling import PriorityScheduler
+from pyscope.telrun.sch_blocks import alc_observing_blocks, xpg1_observing_blocks, xpgtest_observing_blocks
 
 
 # Pytest fixtures for common test setup
@@ -1516,6 +1517,169 @@ class TestBBScheduler:
         
         assert len(scheduled_blocks) == len(blocks), "All schedulable blocks should be scheduled"
 
+    def test_schedule_validity_transition_blocks(self, observer, time_constants, standard_transitioner):
+        """
+        Test that there is a transition block between every 2 observations except the last.
+        
+        Creates multiple observation blocks with sufficient time to schedule them all,
+        then verifies that transition blocks are properly inserted between consecutive
+        observations but not after the last observation.
+        """
+        # Create multiple targets that require transitions between them
+        targets = [
+            FixedTarget.from_name('Vega'),
+            FixedTarget.from_name('Deneb'), 
+            FixedTarget.from_name('Altair'),
+            FixedTarget.from_name('Spica')
+        ]
+        
+        # Create blocks with different configurations to ensure transitions are needed
+        configurations = [
+            {'filter': 'B', 'binning': '1x1'},
+            {'filter': 'V', 'binning': '2x2'}, 
+            {'filter': 'R', 'binning': '1x1'},
+            {'filter': 'I', 'binning': '2x2'}
+        ]
+        
+        blocks = []
+        for i, target in enumerate(targets):
+            block = ObservingBlock(
+                target,
+                20*u.minute,  # Reasonable duration
+                priority=i+1,
+                configuration=configurations[i]
+            )
+            blocks.append(block)
+        
+        # Create schedule with plenty of time (full night)
+        schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+        
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner,
+            gap_time=5*u.minute,
+            time_resolution=1*u.minute
+        )
+        
+        # Run the scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Get all scheduled blocks
+        all_scheduled_blocks = result_schedule.scheduled_blocks
+        
+        # Separate observation blocks from transition blocks
+        observation_blocks = [b for b in all_scheduled_blocks if not isinstance(b, TransitionBlock)]
+        transition_blocks = [b for b in all_scheduled_blocks if isinstance(b, TransitionBlock)]
+        
+        # We should have at least 2 observation blocks to test transitions
+        assert len(observation_blocks) >= 2, "Need at least 2 observation blocks to test transitions"
+        
+        # Check that there's a transition block between every pair of consecutive observations
+        # except after the last observation
+        expected_transitions = len(observation_blocks) - 1
+        
+        # Verify we have the expected number of transition blocks
+        assert len(transition_blocks) == expected_transitions, \
+            f"Should have {expected_transitions} transition blocks, got {len(transition_blocks)}"
+        
+        # Verify the sequence: obs -> transition -> obs -> transition -> ... -> obs (no transition after last)
+        prev_block = None
+        observation_count = 0
+        transition_count = 0
+        
+        for block in all_scheduled_blocks:
+            if isinstance(block, TransitionBlock):
+                # Transition block should follow an observation block
+                assert prev_block is not None and not isinstance(prev_block, TransitionBlock), \
+                    "Transition block should follow an observation block"
+                transition_count += 1
+            else:
+                # Observation block
+                observation_count += 1
+                # If this is not the first observation, it should follow a transition block
+                if observation_count > 1:
+                    assert isinstance(prev_block, TransitionBlock), \
+                        "Non-first observation block should follow a transition block"
+            
+            prev_block = block
+        
+        # Final check: last block should be an observation block (not transition)
+        assert not isinstance(all_scheduled_blocks[-1], TransitionBlock), \
+            "Last scheduled block should be an observation block, not a transition"
+
+    def test_schedule_validity_time_bounds(self, observer, time_constants, standard_transitioner):
+        """
+        Test that the start time of first and end time of last observation fall within 
+        the schedule start and end time.
+        
+        Creates observation blocks and verifies that all scheduled observations
+        respect the time boundaries of the schedule window.
+        """
+        # Create multiple targets
+        targets = [
+            FixedTarget.from_name('Vega'),
+            FixedTarget.from_name('Deneb'),
+            FixedTarget.from_name('Altair')
+        ]
+        
+        blocks = []
+        for i, target in enumerate(targets):
+            block = ObservingBlock(
+                target,
+                30*u.minute,
+                priority=i+1,
+                configuration={'filter': 'R'}
+            )
+            blocks.append(block)
+        
+        # Create schedule with specific time bounds
+        schedule_start = time_constants['start_time']
+        schedule_end = time_constants['end_time']
+        schedule = Schedule(schedule_start, schedule_end)
+        
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner,
+            gap_time=5*u.minute,
+            time_resolution=1*u.minute
+        )
+        
+        # Run the scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Get observation blocks (not transitions)
+        observation_blocks = [b for b in result_schedule.scheduled_blocks 
+                             if not isinstance(b, TransitionBlock)]
+        
+        # Should have at least one scheduled observation to test
+        assert len(observation_blocks) > 0, "At least one observation should be scheduled"
+        
+        # Sort observation blocks by start time to find first and last
+        observation_blocks.sort(key=lambda b: b.start_time)
+        
+        first_observation = observation_blocks[0]
+        last_observation = observation_blocks[-1]
+        
+        # Test that first observation starts within schedule bounds
+        assert first_observation.start_time >= schedule_start, \
+            f"First observation starts at {first_observation.start_time}, " \
+            f"but schedule starts at {schedule_start}"
+        
+        # Test that last observation ends within schedule bounds
+        assert last_observation.end_time <= schedule_end, \
+            f"Last observation ends at {last_observation.end_time}, " \
+            f"but schedule ends at {schedule_end}"
+        
+        # Also test that all observations are within bounds
+        for block in observation_blocks:
+            assert block.start_time >= schedule_start, \
+                f"Observation {block.target.name} starts before schedule start time"
+            assert block.end_time <= schedule_end, \
+                f"Observation {block.target.name} ends after schedule end time"
+
+
 
 class TestBBSchedulerUnifiedInterface:
     """Test suite for the unified interface methods of BBScheduler."""
@@ -1838,3 +2002,248 @@ class TestBBSchedulerUnifiedInterface:
         assert abs(summary['scheduling_efficiency'] - expected_efficiency) < 0.01, \
             "Scheduling efficiency should be correctly calculated"
 
+
+class TestBBSchedulerRealData:
+    """Test suite for BBScheduler using real observing blocks from .sch files."""
+
+    def test_alc_schedule_within_time_bounds(self, observer, standard_transitioner):
+        """Test that ALC blocks return a schedule that starts and finishes between the start and end times."""
+        # Get ALC observing blocks (M57 observations)
+        blocks = alc_observing_blocks()
+        
+        # Create schedule window
+        start_time = Time('2025-07-06 20:00')
+        end_time = Time('2025-07-07 20:00')
+        schedule = Schedule(start_time, end_time)
+        
+        # Create scheduler
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Get observation blocks (not transitions)
+        observation_blocks = [b for b in result_schedule.scheduled_blocks 
+                             if not isinstance(b, TransitionBlock)]
+        
+        # Assert all observations are within time bounds
+        for block in observation_blocks:
+            assert block.start_time >= start_time, f"Block {block.name} starts before schedule start time"
+            assert block.end_time <= end_time, f"Block {block.name} ends after schedule end time"
+
+    def test_xpg1_schedule_within_time_bounds(self, observer, standard_transitioner):
+        """Test that XPG1 blocks return a schedule that starts and finishes between the start and end times."""
+        # Get XPG1 observing blocks (QSO observations)
+        blocks = xpg1_observing_blocks()
+        
+        # Create schedule window
+        start_time = Time('2025-07-06 20:00')
+        end_time = Time('2025-07-07 20:00')
+        schedule = Schedule(start_time, end_time)
+        
+        # Create scheduler
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Get observation blocks (not transitions)
+        observation_blocks = [b for b in result_schedule.scheduled_blocks 
+                             if not isinstance(b, TransitionBlock)]
+        
+        # Assert all observations are within time bounds
+        for block in observation_blocks:
+            assert block.start_time >= start_time, f"Block {block.name} starts before schedule start time"
+            assert block.end_time <= end_time, f"Block {block.name} ends after schedule end time"
+
+    def test_xpgtest_schedule_within_time_bounds(self, observer, standard_transitioner):
+        """Test that XPGTest blocks return a schedule that starts and finishes between the start and end times."""
+        # Get XPGTest observing blocks
+        blocks = xpgtest_observing_blocks()
+        
+        # Create schedule window
+        start_time = Time('2025-07-06 20:00')
+        end_time = Time('2025-07-07 20:00')
+        schedule = Schedule(start_time, end_time)
+        
+        # Create scheduler
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Get observation blocks (not transitions)
+        observation_blocks = [b for b in result_schedule.scheduled_blocks 
+                             if not isinstance(b, TransitionBlock)]
+        
+        # Assert all observations are within time bounds
+        for block in observation_blocks:
+            assert block.start_time >= start_time, f"Block {block.name} starts before schedule start time"
+            assert block.end_time <= end_time, f"Block {block.name} ends after schedule end time"
+
+
+    def test_xpg1_no_time_overlaps(self, observer, standard_transitioner):
+        """Test that XPG1 blocks shouldn't have time overlaps between observation or transition blocks."""
+        # Get XPG1 observing blocks
+        blocks = xpg1_observing_blocks()
+        
+        # Create schedule window
+        start_time = Time('2025-07-06 20:00')
+        end_time = Time('2025-07-07 20:00')
+        schedule = Schedule(start_time, end_time)
+        
+        # Create scheduler
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Check for overlaps in all scheduled blocks
+        all_blocks = result_schedule.scheduled_blocks
+        for i in range(len(all_blocks) - 1):
+            current_block = all_blocks[i]
+            next_block = all_blocks[i + 1]
+            assert current_block.end_time <= next_block.start_time, \
+                f"Overlap detected: {current_block.name} ends at {current_block.end_time}, " \
+                f"{next_block.name} starts at {next_block.start_time}"
+
+    def test_xpgtest_no_time_overlaps(self, observer, standard_transitioner):
+        """Test that XPGTest blocks shouldn't have time overlaps between observation or transition blocks."""
+        # Get XPGTest observing blocks
+        blocks = xpgtest_observing_blocks()
+        
+        # Create schedule window
+        start_time = Time('2025-07-06 20:00')
+        end_time = Time('2025-07-07 20:00')
+        schedule = Schedule(start_time, end_time)
+        
+        # Create scheduler
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Check for overlaps in all scheduled blocks
+        all_blocks = result_schedule.scheduled_blocks
+        for i in range(len(all_blocks) - 1):
+            current_block = all_blocks[i]
+            next_block = all_blocks[i + 1]
+            assert current_block.end_time <= next_block.start_time, \
+                f"Overlap detected: {current_block.name} ends at {current_block.end_time}, " \
+                f"{next_block.name} starts at {next_block.start_time}"
+
+    def test_xpgtest_schedule_success_10_minute_window(self, observer, standard_transitioner):
+        """Test that xpgtest can schedule for 10+ minute window and returns a Schedule object."""
+        # Get XPGTest observing blocks
+        blocks = xpgtest_observing_blocks()
+        
+        # Create 10+ minute schedule window
+        start_time = Time('2025-07-06 20:00')
+        end_time = Time('2025-07-07 20:10')  # 10 minutes
+        schedule = Schedule(start_time, end_time)
+        
+        # Create scheduler
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Assert that we get a Schedule object back
+        assert isinstance(result_schedule, Schedule), "Should return a Schedule object"
+        
+        # The schedule should be valid even if no blocks fit
+        assert hasattr(result_schedule, 'scheduled_blocks'), "Schedule should have scheduled_blocks attribute"
+
+    def test_xpgtest_schedule_failure_short_window(self, observer, standard_transitioner):
+        """Test that xpgtest throws ValueError when time window is below 10 minutes."""
+        # Get XPGTest observing blocks
+        blocks = xpgtest_observing_blocks()
+        
+        # Create very short schedule window (9 minutes)
+        start_time = Time('2025-07-06 20:00')
+        end_time = Time('2025-07-06 20:09')  # 9 minutes
+        schedule = Schedule(start_time, end_time)
+        
+        # Create scheduler
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Should raise ValueError for insufficient time window
+        with pytest.raises(ValueError):
+            scheduler(blocks, schedule)
+
+    def test_xpg1_schedule_success_15_minute_window(self, observer, standard_transitioner):
+        """Test that xpg1 can schedule for 15+ minute window and returns a Schedule object."""
+        # Get XPG1 observing blocks
+        blocks = xpg1_observing_blocks()
+        
+        # Create 15+ minute schedule window
+        start_time = Time('2025-07-06 20:00')
+        end_time = Time('2025-07-07 20:15')  # 15 minutes
+        schedule = Schedule(start_time, end_time)
+        
+        # Create scheduler
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Run scheduler
+        result_schedule = scheduler(blocks, schedule)
+        
+        # Assert that we get a Schedule object back
+        assert isinstance(result_schedule, Schedule), "Should return a Schedule object"
+        
+        # The schedule should be valid even if no blocks fit
+        assert hasattr(result_schedule, 'scheduled_blocks'), "Schedule should have scheduled_blocks attribute"
+
+    def test_xpg1_schedule_failure_short_window(self, observer, standard_transitioner):
+        """Test that xpg1 throws ValueError when time window is below 15 minutes."""
+        # Get XPG1 observing blocks
+        blocks = xpg1_observing_blocks()
+        
+        # Create very short schedule window (14 minutes)
+        start_time = Time('2025-07-06 20:00')
+        end_time = Time('2025-07-06 20:14')  # 14 minutes
+        schedule = Schedule(start_time, end_time)
+        
+        # Create scheduler
+        scheduler = BBScheduler(
+            constraints=[AltitudeConstraint(min=20*u.deg)],
+            observer=observer,
+            transitioner=standard_transitioner
+        )
+        
+        # Should raise ValueError for insufficient time window
+        with pytest.raises(ValueError):
+            scheduler(blocks, schedule)
+
+    
