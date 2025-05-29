@@ -3,82 +3,100 @@
 import pytest
 from astropy.time import Time
 from astropy import units as u
-from astropy.coordinates import SkyCoord, EarthLocation
 from astroplan import Observer, FixedTarget, ObservingBlock
-from astropy.time import Time
-from pyscope.telrun.schedcore import basic_scheduler
-
-# Import your scheduling function
-
-# --- Fixtures --- 
+from astroplan.constraints import AirmassConstraint, AtNightConstraint, TimeConstraint
+from astroplan.scheduling import Transitioner, SequentialScheduler, PriorityScheduler, Schedule
 
 @pytest.fixture
-def test_location():
-    """Test location: Palomar Observatory."""
-    return EarthLocation(lat=33.3563*u.deg, lon=-116.8648*u.deg, height=1706*u.m)
+def apo_observer():
+    """Apache Point Observatory."""
+    return Observer.at_site('apo')
 
 @pytest.fixture
-def test_observer(test_location):
-    """Returns an Observer object for the test."""
-    return Observer(location=test_location, name="TestObservatory", timezone="US/Pacific")
+def observing_targets():
+    """Returns FixedTarget objects for Deneb, M13, Sirius."""
+    return {
+        'Deneb': FixedTarget.from_name('Deneb'),
+        'M13': FixedTarget.from_name('M13'),
+        'Sirius': FixedTarget.from_name('Sirius')
+    }
 
 @pytest.fixture
-def dummy_reconfig():
-    """Dummy reconfiguration time calculator."""
-    class DummyReconfig:
-        def calc_reconfig_time_blocks(self, block1, block2, location, verbose=False):
-            return 30 * u.second  # constant transition time
-    return DummyReconfig()
+def observing_blocks(observing_targets):
+    """Create test observing blocks with different filters and exposures."""
+    read_out = 20 * u.second
+    n = 16
+    deneb_exp = 60 * u.second
+    m13_exp = 100 * u.second
+    sirius_exp = 80 * u.second
+
+    half_night_start = Time('2016-12-15 02:00')
+    half_night_end = Time('2016-12-16 11:00')
+    time_constraint = TimeConstraint(half_night_start, half_night_end)
+
+    blocks = []
+    for priority, bandpass in enumerate(['B', 'G', 'R']):
+        blocks.append(ObservingBlock.from_exposures(
+            observing_targets['Deneb'], priority, deneb_exp, n, read_out,
+            configuration={'filter': bandpass},
+            constraints=[time_constraint]
+        ))
+        blocks.append(ObservingBlock.from_exposures(
+            observing_targets['M13'], priority, m13_exp, n, read_out,
+            configuration={'filter': bandpass},
+            constraints=[time_constraint]
+        ))
+        blocks.append(ObservingBlock.from_exposures(
+            observing_targets['Sirius'], priority, sirius_exp, n, read_out,
+            configuration={'filter': bandpass},
+            constraints=[time_constraint]
+        ))
+
+    return blocks
 
 @pytest.fixture
-def sirius_target():
-    """Returns Sirius as a FixedTarget."""
-    return FixedTarget.from_name("Sirius")
-
-@pytest.fixture
-def sirius_block(sirius_target):
-    """Returns a basic observing block for Sirius."""
-    exposure_time = 60 * u.second
-    return ObservingBlock(sirius_target, exposure_time, priority=1)
-
-# --- Test Case ---
-
-def test_sirius_basic_scheduling_success(test_observer, test_location, dummy_reconfig):
-    """Tests scheduling a Sirius block successfully within constraints."""
-    night_start_time = Time("2025-05-08 03:00:00", scale="utc")
-    night_end_time = Time("2025-05-08 12:00:00", scale="utc")
-
-    # Define Sirius target
-    sirius = FixedTarget.from_name("Sirius")
-    exposure_time = 60 * u.second
-    sirius_block = ObservingBlock(sirius, exposure_time, priority=1)
-
-    # Convert to dict and inject duration
-    block_dict = sirius_block.to_dict()
-    block_dict['duration'] = sirius_block.duration
-    block_group = [block_dict]
-
-    elevation = 30.0
-    airmass = 3.0
-    moon_separation = 30.0
-
-    valid_blocks, invalid_blocks = basic_scheduler(
-        block_group,
-        night_start_time,
-        night_end_time,
-        last_block_end_time=None,
-        observatory=test_observer,
-        reconfig_file=dummy_reconfig,
-        elevation=elevation,
-        airmass=airmass,
-        moon_separation=moon_separation,
-        location=test_location
+def transitioner():
+    """Returns a fixed transitioner object."""
+    return Transitioner(
+        slew_rate=0.8 * u.deg / u.second,
+        instrument_reconfig_times={'filter': {
+            ('B', 'G'): 10 * u.second,
+            ('G', 'R'): 10 * u.second,
+            'default': 30 * u.second
+        }}
     )
 
-    assert len(valid_blocks) == 1, "Sirius block should be scheduled successfully"
-    assert len(invalid_blocks) == 0, "No blocks should be invalid"
+@pytest.fixture
+def global_constraints():
+    """Returns global constraints."""
+    return [
+        AirmassConstraint(max=3, boolean_constraint=False),
+        AtNightConstraint.twilight_civil()
+    ]
 
-    scheduled_block = valid_blocks[0]
-    assert scheduled_block['target'].name == "Sirius"
-    assert scheduled_block['start_time'] == night_start_time
-    assert scheduled_block['end_time'] == night_start_time + scheduled_block['duration']
+@pytest.fixture
+def scheduling_window():
+    """Returns the scheduling window times."""
+    return Time('2016-12-15 19:00'), Time('2016-12-16 19:00')
+
+def test_sequential_scheduler_sirius(observing_blocks, apo_observer, transitioner, global_constraints, scheduling_window):
+    """Tests that Sirius is scheduled in sequential scheduler output."""
+    start, end = scheduling_window
+    scheduler = SequentialScheduler(constraints=global_constraints, observer=apo_observer, transitioner=transitioner)
+    schedule = Schedule(start, end)
+    scheduler(observing_blocks, schedule)
+
+    table = schedule.to_table()
+    sirius_rows = [row for row in table if "Sirius" in row['target']]
+    assert sirius_rows, "Sirius should appear in the sequential schedule"
+
+def test_priority_scheduler_sirius(observing_blocks, apo_observer, transitioner, global_constraints, scheduling_window):
+    """Tests that Sirius is scheduled in priority scheduler output."""
+    start, end = scheduling_window
+    scheduler = PriorityScheduler(constraints=global_constraints, observer=apo_observer, transitioner=transitioner)
+    schedule = Schedule(start, end)
+    scheduler(observing_blocks, schedule)
+
+    table = schedule.to_table()
+    sirius_rows = [row for row in table if "Sirius" in row['target']]
+    assert sirius_rows, "Sirius should appear in the priority schedule"

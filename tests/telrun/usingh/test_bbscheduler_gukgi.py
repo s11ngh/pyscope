@@ -49,55 +49,6 @@ class TestBBSchedulerGukgi:
         # - Schedule with slow transitioner (low slew rate, long gaps)
         # - Compare scheduling results and efficiency
         # - Verify that faster transitioner allows more blocks to be scheduled
-        pass
-
-    def test_block_duration_edge_cases(self, observer, time_constants, standard_transitioner):
-        """
-        Test scheduler behavior with extreme block durations.
-        
-        Verify that the scheduler correctly handles very short blocks (seconds),
-        very long blocks (hours), and blocks with durations that exactly match
-        available time slots.
-        """
-        # TODO: Implement test for block duration edge cases
-        # - Create blocks with very short durations (10 seconds)
-        # - Create blocks with very long durations (8+ hours)
-        # - Create blocks that exactly fit available time slots
-        # - Schedule the blocks
-        # - Verify proper handling of all duration extremes
-        # - Verify that duration constraints are respected
-        pass
-
-    def test_observer_location_impact(self, time_constants, standard_transitioner):
-        """
-        Test how different observer locations affect target visibility and scheduling.
-        
-        Verify that the same targets scheduled from different observatory
-        locations (different latitudes) produce different scheduling results
-        due to varying target visibility.
-        """
-        # TODO: Implement test for observer location impact
-        # - Create observers at different locations (e.g., APO, Keck, CTIO)
-        # - Use same target list and time window for all observers
-        # - Schedule blocks for each observer location
-        # - Compare scheduling results between locations
-        # - Verify that target visibility differences affect scheduling
-        
-
-    def test_seasonal_target_visibility(self, observer, standard_transitioner):
-        """
-        Test scheduler behavior with targets across different seasons.
-        
-        Verify that the scheduler correctly handles seasonal target visibility
-        by testing the same targets during different times of year (summer vs winter).
-        """
-        # TODO: Implement test for seasonal target visibility
-        # - Create summer observation window (July)
-        # - Create winter observation window (December)
-        # - Use same target list for both seasons
-        # - Schedule blocks for both time periods
-        # - Compare which targets are schedulable in each season
-        # - Verify seasonal visibility effects on missing blocks
         targets = [
             FixedTarget.from_name('Vega'),
             FixedTarget.from_name('Altair'),
@@ -146,22 +97,23 @@ class TestBBSchedulerGukgi:
         assert len(fast_blocks) >= len(slow_blocks), \
             "Fast transitioner should allow at least as many scheduled blocks as slow transitioner"
         
-    def test_concurrent_scheduling_consistency(self, observer, time_constants, standard_transitioner):
-        """
-        Test that multiple scheduler instances produce consistent results.
-        
-        Verify that creating multiple BBScheduler instances with identical
-        parameters and scheduling identical block sets produces the same
-        results, ensuring deterministic behavior.
-        """
-        # TODO: Implement test for concurrent scheduling consistency
-        # - Create multiple BBScheduler instances with identical parameters
-        # - Schedule identical block sets with each scheduler
-        # - Compare all scheduling results (scheduled, missing, summary)
-        # - Verify that results are identical across all instances
-        # - Test with different random seeds if applicable
 
-        # Setup
+    def test_block_duration_edge_cases(self, observer, time_constants, standard_transitioner):
+        """
+        Test scheduler behavior with extreme block durations.
+        
+        Verify that the scheduler correctly handles very short blocks (seconds),
+        very long blocks (hours), and blocks with durations that exactly match
+        available time slots.
+        """
+        # TODO: Implement test for block duration edge cases
+        # - Create blocks with very short durations (10 seconds)
+        # - Create blocks with very long durations (8+ hours)
+        # - Create blocks that exactly fit available time slots
+        # - Schedule the blocks
+        # - Verify proper handling of all duration extremes
+        # - Verify that duration constraints are respected
+         # Setup
         schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
 
         # Very short duration block
@@ -173,7 +125,10 @@ class TestBBSchedulerGukgi:
         )
 
         # Very long duration block (almost entire night)
-        long_duration = (time_constants['end_time'] - time_constants['start_time']) - 10 * u.minute
+        time_diff = (time_constants['end_time'] - time_constants['start_time']).to(u.hour)
+        # Convert both durations to the same unit before subtraction
+        short_duration = 10 * u.minute
+        long_duration = time_diff - short_duration.to(u.hour)
         long_block = ObservingBlock(
             FixedTarget.from_name('Altair'),
             long_duration,
@@ -211,3 +166,199 @@ class TestBBSchedulerGukgi:
                 assert abs(duration.to(u.minute).value - long_duration.to(u.minute).value) < 1, "Long block duration should be ~all night minus 10 min"
             elif block.target.name == 'Deneb':
                 assert abs(duration.to(u.minute).value - 30) < 1, "Exact block duration should be 30 minutes"
+
+
+    def test_observer_location_impact(self, time_constants, standard_transitioner):
+        """
+        Test how different observer locations affect target visibility and scheduling.
+        
+        Verify that the same targets scheduled from different observatory
+        locations (different latitudes) produce different scheduling results
+        due to varying target visibility.
+        """
+        # TODO: Implement test for observer location impact
+        # - Create observers at different locations (e.g., APO, Keck, CTIO)
+        # - Use same target list and time window for all observers
+        # - Schedule blocks for each observer location
+        # - Compare scheduling results between locations
+        # - Verify that target visibility differences affect scheduling
+
+        # Observers at different locations
+        observers = {
+            'Subaru': Observer.at_site("Subaru", timezone="US/Hawaii"),
+            'CTIO': Observer.at_site("ctio"),
+            'APO': Observer.at_site("apo")
+        }
+
+        # Common targets and blocks
+        targets = [
+            FixedTarget.from_name('Spica'),     # Southern sky
+            FixedTarget.from_name('Vega'),      # Northern sky
+            FixedTarget.from_name('Canopus')    # Far southern sky, hard for APO
+        ]
+
+        blocks = []
+        for i, target in enumerate(targets):
+            blocks.append(ObservingBlock(
+                target,
+                30 * u.minute,
+                priority=1,
+                configuration={'filter': f'F{i}'}
+            ))
+
+        scheduled_by_site = {}
+
+        for site_name, observer in observers.items():
+            schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+            scheduler = BBScheduler(
+                constraints=[AltitudeConstraint(min=20 * u.deg), AtNightConstraint.twilight_astronomical()],
+                observer=observer,
+                transitioner=standard_transitioner,
+                gap_time=2 * u.minute,
+                time_resolution=1 * u.minute
+            )
+            result = scheduler(blocks, schedule)
+
+            # Record scheduled targets
+            scheduled_targets = [b.target.name for b in result.scheduled_blocks if not isinstance(b, TransitionBlock)]
+            scheduled_by_site[site_name] = set(scheduled_targets)
+
+        # Assert at least one observer sees a different subset
+        scheduled_sets = list(scheduled_by_site.values())
+        assert any(scheduled_sets[0] != scheduled_sets[i] for i in range(1, len(scheduled_sets))), \
+            f"Scheduling results should differ between observatories: {scheduled_by_site}"
+        
+
+    def test_seasonal_target_visibility(self, observer, standard_transitioner):
+        """
+        Test scheduler behavior with targets across different seasons.
+        
+        Verify that the scheduler correctly handles seasonal target visibility
+        by testing the same targets during different times of year (summer vs winter).
+        """
+        # TODO: Implement test for seasonal target visibility
+        # - Create summer observation window (July)
+        # - Create winter observation window (December)
+        # - Use same target list for both seasons
+        # - Schedule blocks for both time periods
+        # - Compare which targets are schedulable in each season
+        # - Verify seasonal visibility effects on missing blocks
+        
+        summer_start = Time('2025-07-07 01:00')
+        summer_end = Time('2025-07-07 09:00')
+        winter_start = Time('2025-12-15 01:00')
+        winter_end = Time('2025-12-15 09:00')
+
+        targets = [
+            FixedTarget.from_name('Vega'),
+            FixedTarget.from_name('Betelgeuse'),
+            FixedTarget.from_name('Canopus')  # Better seasonal contrast
+        ]
+
+        blocks = []
+        for i, target in enumerate(targets):
+            blocks.append(ObservingBlock(
+                target,
+                30 * u.minute,
+                priority=1,
+                configuration={'filter': f'F{i}'}
+            ))
+
+        constraints = [AltitudeConstraint(min=20 * u.deg), AtNightConstraint.twilight_astronomical()]
+
+        # Summer
+        scheduler_summer = BBScheduler(
+            constraints=constraints,
+            observer=observer,
+            transitioner=standard_transitioner,
+            gap_time=2 * u.minute,
+            time_resolution=1 * u.minute
+        )
+        schedule_summer = Schedule(summer_start, summer_end)
+        schedule_summer = scheduler_summer(blocks, schedule_summer)
+
+        summer_targets = {
+            block.target.name for block in schedule_summer.scheduled_blocks
+            if hasattr(block, 'target') and not isinstance(block, TransitionBlock)
+        }
+
+        # Winter
+        scheduler_winter = BBScheduler(
+            constraints=constraints,
+            observer=observer,
+            transitioner=standard_transitioner,
+            gap_time=2 * u.minute,
+            time_resolution=1 * u.minute
+        )
+        schedule_winter = Schedule(winter_start, winter_end)
+        schedule_winter = scheduler_winter(blocks, schedule_winter)
+
+        winter_targets = {
+            block.target.name for block in schedule_winter.scheduled_blocks
+            if hasattr(block, 'target') and not isinstance(block, TransitionBlock)
+        }
+
+        # Compare visibility
+        difference = summer_targets.symmetric_difference(winter_targets)
+
+        assert len(difference) > 0, (
+            f"Expected seasonal visibility difference but got:\n"
+            f"Summer: {summer_targets}\nWinter: {winter_targets}"
+        )
+        
+    def test_concurrent_scheduling_consistency(self, observer, time_constants, standard_transitioner):
+        """
+        Test that multiple scheduler instances produce consistent results.
+        
+        Verify that creating multiple BBScheduler instances with identical
+        parameters and scheduling identical block sets produces the same
+        results, ensuring deterministic behavior.
+        """
+        # TODO: Implement test for concurrent scheduling consistency
+        # - Create multiple BBScheduler instances with identical parameters
+        # - Schedule identical block sets with each scheduler
+        # - Compare all scheduling results (scheduled, missing, summary)
+        # - Verify that results are identical across all instances
+        # - Test with different random seeds if applicable
+        
+        targets = [
+            FixedTarget.from_name('Vega'),
+            FixedTarget.from_name('Altair'),
+            FixedTarget.from_name('Deneb')
+        ]
+
+        blocks = []
+        for i, target in enumerate(targets):
+            blocks.append(ObservingBlock(
+                target,
+                30 * u.minute,
+                priority=1,
+                configuration={'filter': f'F{i}'}
+            ))
+
+        constraints = [AltitudeConstraint(min=20 * u.deg), AtNightConstraint.twilight_astronomical()]
+
+        def run_scheduler():
+            schedule = Schedule(time_constants['start_time'], time_constants['end_time'])
+            scheduler = BBScheduler(
+                constraints=constraints,
+                observer=observer,
+                transitioner=standard_transitioner,
+                gap_time=3 * u.minute,
+                time_resolution=1 * u.minute
+            )
+            return scheduler(blocks, schedule)
+
+        schedule1 = run_scheduler()
+        schedule2 = run_scheduler()
+
+        obs1 = [b for b in schedule1.scheduled_blocks if not isinstance(b, TransitionBlock)]
+        obs2 = [b for b in schedule2.scheduled_blocks if not isinstance(b, TransitionBlock)]
+
+        assert len(obs1) == len(obs2), "Mismatch in number of scheduled blocks"
+
+        for b1, b2 in zip(obs1, obs2):
+            assert b1.target.name == b2.target.name, "Target mismatch"
+            assert abs((b1.start_time - b2.start_time).to(u.second).value) < 1, "Start time mismatch"
+            assert abs((b1.end_time - b2.end_time).to(u.second).value) < 1, "End time mismatch"
+            assert b1.configuration == b2.configuration, "Configuration mismatch"
