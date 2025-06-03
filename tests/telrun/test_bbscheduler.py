@@ -1,28 +1,51 @@
 """
-Testing suite for the BBScheduler class.
+Test suite for the BBScheduler implementation.
 
-This module provides comprehensive testing for the BBScheduler implementation,
-which extends astroplan's PriorityScheduler. The tests verify the scheduler's
+This module provides comprehensive testing for the `~pyscope.telrun.BBScheduler` class,
+which extends `~astroplan.scheduling.PriorityScheduler`. Tests verify the scheduler's
 ability to handle various observing scenarios, constraints, and edge cases.
 
 The test suite is organized into three main classes:
-- TestBBScheduler: Core functionality tests
-- TestBBSchedulerUnifiedInterface: Interface method tests
-- TestBBSchedulerRealData: Tests using real observing data
 
-The tests use pytest fixtures for common setup and assertions for validation.
+- `~pyscope.tests.telrun.test_bbscheduler.TestBBScheduler`
+  Core functionality tests including priority handling, transition blocks,
+  and scheduling efficiency.
+
+- `~pyscope.tests.telrun.test_bbscheduler.TestBBSchedulerUnifiedInterface`
+  Tests for the unified interface methods like get_missing_blocks() and
+  get_scheduling_summary().
+
+- `~pyscope.tests.telrun.test_bbscheduler.TestBBSchedulerRealData`  
+  Tests using real observing data from XPG1 and XPGTest schedules.
+
+Parameters
+----------
+None
+
+Returns
+-------
+None
+
+Notes
+-----
+The test suite assumes:
+- An observer at Apache Point Observatory 
+- Test dates in July 2025
+- Standard slew rates of 1-5 deg/sec
+- Basic altitude constraints (20-30 degrees minimum)
+- Night time astronomical constraints
 
 Test Categories
 -------------
 1. Basic Functionality
    - Priority handling
-   - Transition block insertion
+   - Transition block insertion 
    - Single target observations
    - Multiple target scheduling
 
 2. Edge Cases
-   - Extremely short/long observations  
-   - Unobservable targets
+   - Extremely short/long observations
+   - Unobservable targets 
    - Schedule boundary conditions
    - Time conflicts
 
@@ -35,28 +58,19 @@ Test Categories
    - XPG1 observing blocks
    - XPGTest observing blocks
 
-Notes
------
-The test suite assumes:
-- An observer at Apache Point Observatory
-- Test dates in July 2025
-- Standard slew rates of 1-5 deg/sec
-- Basic altitude constraints (20-30 degrees minimum)
-- Night time astronomical constraints
-
-Example
--------
+Examples
+--------
 To run all tests:
 
-```bash
-pytest test_bbscheduler.py -v
-```
+.. code-block:: bash
+
+    pytest test_bbscheduler.py -v
 
 To run a specific test category:
 
-```bash 
-pytest test_bbscheduler.py -k "test_priority" -v
-```
+.. code-block:: bash
+
+    pytest test_bbscheduler.py -k "test_priority" -v
 
 See Also
 --------
@@ -907,13 +921,7 @@ class TestBBScheduler:
         # Create schedule and transitioner
         schedule = Schedule(constants['start_time'], constants['end_time'])
         transitioner = Transitioner(slew_rate=1*u.deg/u.second)
-
-        # Create scheduler with basic constraints
-        constraints = [
-            AltitudeConstraint(min=25*u.deg),
-            AtNightConstraint.twilight_astronomical()
-        ]
-
+        
         # Create scheduler with basic constraints
         constraints = [
             AltitudeConstraint(min=25*u.deg),
@@ -2058,7 +2066,6 @@ class TestBBSchedulerUnifiedInterface:
         summary = scheduler.get_scheduling_summary()
         
         # Verify summary structure
-       
         required_keys = ['total_blocks', 'scheduled_blocks', 'missing_blocks', 'scheduling_efficiency']
         for key in required_keys:
             assert key in summary, f"Summary should contain key: {key}"
