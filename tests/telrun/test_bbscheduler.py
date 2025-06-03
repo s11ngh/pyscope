@@ -1,3 +1,69 @@
+"""
+Testing suite for the BBScheduler class.
+
+This module provides comprehensive testing for the BBScheduler implementation,
+which extends astroplan's PriorityScheduler. The tests verify the scheduler's
+ability to handle various observing scenarios, constraints, and edge cases.
+
+The test suite is organized into three main classes:
+- TestBBScheduler: Core functionality tests
+- TestBBSchedulerUnifiedInterface: Interface method tests
+- TestBBSchedulerRealData: Tests using real observing data
+
+The tests use pytest fixtures for common setup and assertions for validation.
+
+Test Categories
+-------------
+1. Basic Functionality
+   - Priority handling
+   - Transition block insertion
+   - Single target observations
+   - Multiple target scheduling
+
+2. Edge Cases
+   - Extremely short/long observations  
+   - Unobservable targets
+   - Schedule boundary conditions
+   - Time conflicts
+
+3. Performance
+   - Large scale scheduling (100+ targets)
+   - Scheduling efficiency
+   - Time utilization
+
+4. Real Data
+   - XPG1 observing blocks
+   - XPGTest observing blocks
+
+Notes
+-----
+The test suite assumes:
+- An observer at Apache Point Observatory
+- Test dates in July 2025
+- Standard slew rates of 1-5 deg/sec
+- Basic altitude constraints (20-30 degrees minimum)
+- Night time astronomical constraints
+
+Example
+-------
+To run all tests:
+
+```bash
+pytest test_bbscheduler.py -v
+```
+
+To run a specific test category:
+
+```bash 
+pytest test_bbscheduler.py -k "test_priority" -v
+```
+
+See Also
+--------
+BBScheduler : The scheduler class being tested
+PriorityScheduler : Parent class from astroplan
+"""
+
 import pytest
 from astroplan import Observer, FixedTarget, ObservingBlock
 from astropy.time import Time
@@ -841,7 +907,13 @@ class TestBBScheduler:
         # Create schedule and transitioner
         schedule = Schedule(constants['start_time'], constants['end_time'])
         transitioner = Transitioner(slew_rate=1*u.deg/u.second)
-        
+
+        # Create scheduler with basic constraints
+        constraints = [
+            AltitudeConstraint(min=25*u.deg),
+            AtNightConstraint.twilight_astronomical()
+        ]
+
         # Create scheduler with basic constraints
         constraints = [
             AltitudeConstraint(min=25*u.deg),
@@ -1986,6 +2058,7 @@ class TestBBSchedulerUnifiedInterface:
         summary = scheduler.get_scheduling_summary()
         
         # Verify summary structure
+       
         required_keys = ['total_blocks', 'scheduled_blocks', 'missing_blocks', 'scheduling_efficiency']
         for key in required_keys:
             assert key in summary, f"Summary should contain key: {key}"
@@ -2219,4 +2292,3 @@ class TestBBSchedulerRealData:
         with pytest.raises(ValueError):
             scheduler(blocks, schedule)
 
-    
