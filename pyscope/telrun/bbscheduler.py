@@ -7,35 +7,70 @@ class BBScheduler(PriorityScheduler):
     
     This scheduler maintains the core functionality of PriorityScheduler,
     which schedules observation blocks in order of priority, but is designed
-    to be extended with additional features in the future.
-    
-    This enhanced version tracks the original blocks passed to the scheduler
-    and provides methods to identify which blocks were not scheduled.
-    
-    All scheduling results can be accessed from the scheduler object via methods:
-    - scheduler.get_observing_blocks(): Successfully scheduled observation blocks
-    - scheduler.get_scheduled_blocks(): All scheduled blocks (including transitions)
-    - scheduler.get_missing_blocks(): Blocks that couldn't be scheduled
-    - scheduler.get_original_blocks(): All blocks originally submitted
-    - scheduler.get_scheduling_summary(): Summary of scheduling results
+    to be extended with additional features in the future. This enhanced 
+    version tracks the original blocks passed to the scheduler and provides 
+    methods to identify which blocks were not scheduled.
     
     Parameters
     ----------
-    constraints : list or None
-        Constraints to apply to all observations
-    
+    constraints : list or None, optional
+        Constraints to apply to all observations.
     observer : astroplan.Observer
-        The observer/site to do the scheduling for
-    
-    transitioner : astroplan.Transitioner or None
+        The observer/site to do the scheduling for.
+    transitioner : astroplan.Transitioner or None, optional
         The transitioner to use for computing transition times
-        between observations
-    
+        between observations.
     gap_time : astropy.units.Quantity
-        The maximum length of time a transition between observations can take
-    
+        The maximum length of time a transition between observations can take.
     time_resolution : astropy.units.Quantity
-        The smallest time step to use when scheduling
+        The smallest time step to use when scheduling.
+    
+    Attributes
+    ----------
+    _original_blocks : list
+        Storage for the original blocks passed to the scheduler.
+    _last_schedule : Schedule or None
+        The most recent schedule result from the scheduler.
+    
+    Methods
+    -------
+    get_observing_blocks()
+        Get the successfully scheduled observation blocks.
+    get_scheduled_blocks()
+        Get all scheduled blocks including transitions.
+    get_missing_blocks()
+        Get blocks that couldn't be scheduled.
+    get_original_blocks()
+        Get all blocks originally submitted.
+    get_scheduling_summary()
+        Get summary of scheduling results.
+    
+    Examples
+    --------
+    >>> from astroplan import Observer
+    >>> from astropy.coordinates import EarthLocation
+    >>> import astropy.units as u
+    >>> 
+    >>> # Create observer
+    >>> location = EarthLocation.of_site('Kitt Peak')
+    >>> observer = Observer(location=location)
+    >>> 
+    >>> # Create scheduler
+    >>> scheduler = BBScheduler(constraints=[], observer=observer)
+    >>> 
+    >>> # Schedule blocks (blocks and schedule objects needed)
+    >>> # result_schedule = scheduler(blocks, schedule)
+    >>> 
+    >>> # Get scheduling results
+    >>> summary = scheduler.get_scheduling_summary()
+    >>> missing = scheduler.get_missing_blocks()
+    
+    Notes
+    -----
+    This scheduler extends astroplan.scheduling.PriorityScheduler and maintains
+    backward compatibility while adding enhanced tracking capabilities. The 
+    scheduler stores references to original blocks and provides convenience
+    methods to analyze scheduling results.
     """
 
     def __init__(self, *args, **kwargs):
