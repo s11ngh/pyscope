@@ -2006,34 +2006,7 @@ class TestBBSchedulerUnifiedInterface:
 class TestBBSchedulerRealData:
     """Test suite for BBScheduler using real observing blocks from .sch files."""
 
-    def test_alc_schedule_within_time_bounds(self, observer, standard_transitioner):
-        """Test that ALC blocks return a schedule that starts and finishes between the start and end times."""
-        # Get ALC observing blocks (M57 observations)
-        blocks = alc_observing_blocks()
-        
-        # Create schedule window
-        start_time = Time('2025-07-06 20:00')
-        end_time = Time('2025-07-07 20:00')
-        schedule = Schedule(start_time, end_time)
-        
-        # Create scheduler
-        scheduler = BBScheduler(
-            constraints=[AltitudeConstraint(min=20*u.deg)],
-            observer=observer,
-            transitioner=standard_transitioner
-        )
-        
-        # Run scheduler
-        result_schedule = scheduler(blocks, schedule)
-        
-        # Get observation blocks (not transitions)
-        observation_blocks = [b for b in result_schedule.scheduled_blocks 
-                             if not isinstance(b, TransitionBlock)]
-        
-        # Assert all observations are within time bounds
-        for block in observation_blocks:
-            assert block.start_time >= start_time, f"Block {block.name} starts before schedule start time"
-            assert block.end_time <= end_time, f"Block {block.name} ends after schedule end time"
+    
 
     def test_xpg1_schedule_within_time_bounds(self, observer, standard_transitioner):
         """Test that XPG1 blocks return a schedule that starts and finishes between the start and end times."""

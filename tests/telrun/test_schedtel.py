@@ -9,8 +9,8 @@ from pyscope.telrun import plot_schedule_gantt, plot_schedule_sky, schedtel
 def test_schedtel(tmp_path):
     logging.basicConfig(level=logging.INFO)
 
-    catalog = "../tests/bin/test_utstart.cat"
-    observatory = "../tests/bin/simulator_observatory.cfg"
+    catalog = "/Users/ujjwalsingh/Documents/pyscope/tests/bin/valid/alc.sch"
+    observatory = "/Users/ujjwalsingh/Documents/pyscope/tests/bin/saved_observatory.cfg"
 
     schedule = schedtel(
         catalog=catalog,

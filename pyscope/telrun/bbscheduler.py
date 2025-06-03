@@ -1,7 +1,4 @@
-from astroplan.scheduling import Scheduler, PriorityScheduler
-
-
-
+from astroplan.scheduling import PriorityScheduler
 
 
 class BBScheduler(PriorityScheduler):
