@@ -2,11 +2,11 @@ import pytest
 from astroplan import Observer, FixedTarget, ObservingBlock
 from astropy.time import Time
 from astropy import units as u
-from astroplan.constraints import AirmassConstraint, AtNightConstraint, TimeConstraint, AltitudeConstraint
+from astroplan.constraints import AtNightConstraint, TimeConstraint, AltitudeConstraint
 from astroplan.scheduling import TransitionBlock, Schedule, Transitioner
 from pyscope.telrun.bbscheduler import BBScheduler
 from astroplan.scheduling import PriorityScheduler
-from pyscope.telrun.sch_blocks import alc_observing_blocks, xpg1_observing_blocks, xpgtest_observing_blocks
+from pyscope.telrun.sch_blocks import xpg1_observing_blocks, xpgtest_observing_blocks
 
 
 # Pytest fixtures for common test setup
